@@ -9,12 +9,16 @@ def crop_video(input_file, output_file):
         print("无法打开视频文件")
         return
 
-    # 创建一个窗口并显示视频帧
-    cv2.namedWindow("Video Cropper")
-    cv2.imshow("Video Cropper", cv2.imread(input_file))
-
     # 在窗口上选择裁剪区域
-    (x, y, w, h) = cv2.selectROI("Video Cropper", cap, fromCenter=False)
+    cv2.namedWindow("Video Cropper")
+    ret, frame = cap.read()
+    if not ret:
+        print("无法读取视频帧")
+        cap.release()
+        cv2.destroyAllWindows()
+        return
+
+    (x, y, w, h) = cv2.selectROI("Video Cropper", frame, fromCenter=False)
     cv2.destroyAllWindows()
 
     # 开始读取视频并裁剪
@@ -40,8 +44,9 @@ def crop_video(input_file, output_file):
 
     print("视频画面裁剪完成")
 
+
 if __name__ == "__main__":
-    input_file = 'media/input_video_01.mp4'    # 输入视频文件名
+    input_file = 'media/shihumobile.mp4'    # 输入视频文件名
     output_file = 'media/output.mp4'  # 输出视频文件名
 
     crop_video(input_file, output_file)
