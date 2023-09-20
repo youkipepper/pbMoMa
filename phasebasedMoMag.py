@@ -137,7 +137,7 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
 
 ################# main script
 
-vidFname = 'media/output.mp4'
+vidFname = 'media/guitar.mp4'
 
 # maximum nr of frames to process
 maxFrames = 60000
