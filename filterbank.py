@@ -1,8 +1,7 @@
 from __future__ import division
 import numpy as np
-import scipy.misc as sc
+import scipy.special as sc
 import scipy.signal
-from scipy.special import factorial
 
 def visualize(coeff, normalize = True):
 	M, N = coeff[1][0].shape
@@ -87,7 +86,7 @@ class Steerable:
 			lutsize = 1024
 			Xcosn = np.pi * np.array(range(-(2*lutsize+1),(lutsize+2)))/lutsize
 			order = self.nbands - 1
-			const = np.power(2, 2*order) * np.square(factorial(order)) / (self.nbands * factorial(2*order))
+			const = np.power(2, 2*order) * np.square(sc.factorial(order)) / (self.nbands * sc.factorial(2*order))
 
 			alpha = (Xcosn + np.pi) % (2*np.pi) - np.pi
 			Ycosn = 2*np.sqrt(const) * np.power(np.cos(Xcosn), order) * (np.abs(alpha) < np.pi/2)
@@ -96,7 +95,7 @@ class Steerable:
 
 			for b in range(self.nbands):
 				anglemask = self.pointOp(angle, Ycosn, Xcosn + np.pi*b/self.nbands)
-				banddft = np.power(np.complex(0,-1), self.nbands - 1) * lodft * anglemask * himask
+				banddft = np.power(complex(0,-1), self.nbands - 1) * lodft * anglemask * himask
 				band = np.fft.ifft2(np.fft.ifftshift(banddft))
 				orients.append(band)
 
@@ -145,15 +144,13 @@ class Steerable:
 			for b in range(self.nbands):
 				anglemask = self.pointOp(angle, Ycosn, Xcosn + np.pi* b/self.nbands)
 				banddft = np.fft.fftshift(np.fft.fft2(coeff[0][b]))
-				orientdft = orientdft + np.power(np.complex(0,1), order) * banddft * anglemask * himask
+				orientdft = orientdft + np.power(complex(0,1), order) * banddft * anglemask * himask
 
 			# ============== Lowpass component are upsampled and convoluted ============
 			dims = np.array(coeff[0][0].shape)
-			
-			lostart = (np.ceil((dims+0.5)/2) - np.ceil((np.ceil((dims-0.5)/2)+0.5)/2)).astype(np.int32)
-			loend = lostart + np.ceil((dims-0.5)/2).astype(np.int32) 
-			lostart = lostart.astype(int)
-			loend = loend.astype(int)
+
+			lostart = (np.ceil((dims + 0.5) / 2) - np.ceil((np.ceil((dims - 0.5) / 2) + 0.5) / 2)).astype(np.int32)
+			loend = lostart + np.ceil((dims - 0.5) / 2).astype(np.int32)
 
 			nlog_rad = log_rad[lostart[0]:loend[0], lostart[1]:loend[1]]
 			nangle = angle[lostart[0]:loend[0], lostart[1]:loend[1]]

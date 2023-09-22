@@ -120,7 +120,7 @@ class IIRFilter (SlidingWindow):
     Implements the IIR filter
            a[0]*y[n] = b[0]*x[n] + b[1]*x[n-1] + ... + b[nb]*x[n-nb]
                                    - a[1]*y[n-1] - ... - a[na]*y[n-na]        
-    See scipy.signal.lfilter
+    See scipy.signal.filter
     """
 
     def __init__(self, b, a):
