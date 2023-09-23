@@ -1,8 +1,12 @@
 # pbMoMa
 for phase-based motion magnification
 
+python vision: 3.10.12
+
 env:
-    opencv-python                 4.2.0.32
-    matplotlib                    2.2.5       
-    numpy                         1.16.6   
-    scipy                         1.2.3git 
+    matplotlib      3.8.0
+    numpy           1.24.2
+    opencv-python   4.7.0.72 
+    scipy           1.10.1
+
+!cp ./filterbank.py */envs/py3x/lib/python3.10/site-packages/perceptual/filterbank.py

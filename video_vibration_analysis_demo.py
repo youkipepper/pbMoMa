@@ -14,23 +14,40 @@ frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
 print(f"Total Frames: {total_frames}")
 print(f"Frame Rate: {frame_rate} fps")
 
+# 选择感兴趣区域（ROI）
+print("Select a ROI and then press SPACE or ENTER button!")
+print("Cancel the selection process by pressing c button!")
+
+while True:
+    ret, first_frame = cap.read()
+    if not ret:
+        break
+
+    cv2.imshow("Select ROI", first_frame)
+    roi = cv2.selectROI("Select ROI", first_frame, fromCenter=False)
+    cv2.destroyWindow("Select ROI")
+
+    if roi[2] > 0 and roi[3] > 0:  # 确保选择了有效的ROI
+        break
+
+# 获取感兴趣区域的坐标
+x, y, w, h = map(int, roi)
+
 # 初始化SIFT特征点检测器
 sift = cv2.SIFT_create()
 
 # 读取第一帧图像
+cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 回到视频的第一帧
 ret, first_frame = cap.read()
 gray_first_frame = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
 
-# 在第一帧图像上绘制感兴趣区域的边界框
-cv2.namedWindow("Select ROI")
-roi = cv2.selectROI("Select ROI", first_frame, fromCenter=False)
-cv2.destroyWindow("Select ROI")
-
-# 获取感兴趣区域的坐标
-x, y, w, h = roi
-
 # 检测特征点和计算描述符
 kp1, des1 = sift.detectAndCompute(gray_first_frame[y:y+h, x:x+w], None)
+
+# 在第一帧上绘制特征点并保存图像
+first_frame_with_keypoints = cv2.drawKeypoints(first_frame[y:y+h, x:x+w], kp1, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+cv2.imwrite("first_frame_with_keypoints.png", first_frame_with_keypoints)
+
 
 # 创建一个空的轨迹列表
 tracks = [[] for _ in range(len(kp1))]
@@ -55,11 +72,43 @@ try:
         # 检测特征点和计算描述符，仅在感兴趣区域内进行
         kp2, des2 = sift.detectAndCompute(gray_frame[y:y+h, x:x+w], None)
 
-        # 使用FLANN匹配器匹配特征点
-        flann = cv2.FlannBasedMatcher()
-        matches = flann.knnMatch(des1, des2, k=2)
+        # # 使用FLANN匹配器匹配特征点
+        # flann = cv2.FlannBasedMatcher()
+        # matches = flann.knnMatch(des1, des2, k=1)
 
-        # ... 其他代码 ...
+        # 使用FLANN匹配器匹配特征点
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1, des2, k=1)
+
+        # 选择良好的匹配
+        good_matches = []
+        for match in matches:
+            if len(match) > 0:
+                m = match[0]
+                if m.distance < 0.7:
+                    good_matches.append(m)
+
+        # 获取匹配点的坐标
+        src_pts = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+
+        # 计算运动矢量
+        if len(src_pts) >= 4:
+            M, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+            if M is not None:
+                # 将运动矩阵M应用于特征点的坐标
+                new_pts = cv2.perspectiveTransform(np.array([kp1[i].pt for i in range(len(kp1))]).reshape(-1, 1, 2), M)
+                for i, pt in enumerate(new_pts):
+                    x, y = pt.ravel()
+                    if i < len(tracks):  # 检查索引是否在范围内
+                        tracks[i].append((x, y))
+                    else:
+                        # 如果轨迹列表长度不够，可以添加新的轨迹
+                        tracks.append([(x, y)])
+
+        # 更新上一帧的特征点和描述符
+        kp1 = kp2
+        des1 = des2
 
 except KeyboardInterrupt:
     pass
@@ -116,7 +165,7 @@ plt.title('Vibration Amplitudes')
 
 plt.tight_layout()
 
-# 保存绘制的图片到指定文件夹下
+# 检查目录是否存在，如果不存在则创建
 save_dir = './fig'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -124,6 +173,7 @@ if not os.path.exists(save_dir):
 else:
     print(f"Directory {save_dir} already exists.")
 
+# 保存绘制的图片到指定文件夹下
 save_path = os.path.join(save_dir, 'vibration_analysis_plot.png')
 plt.savefig(save_path)
 plt.show()
