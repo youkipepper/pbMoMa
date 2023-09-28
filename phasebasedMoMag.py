@@ -141,7 +141,7 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
 #vidFname = 'media/baby.mp4';
 #vidFname = 'media/WIN_20151208_17_11_27_Pro.mp4.normalized.avi'
 #vidFname = 'media/embryos01_30s.mp4'
-vidFname = 'media/input_video_01.mp4'
+vidFname = 'media/shihumobile.mp4'
 # vidFname = 'media/box.mp4'
 
 # maximum nr of frames to process
@@ -160,4 +160,3 @@ highFreq = 85
 vidFnameOut = vidFname + '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)
 
 phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq)
-

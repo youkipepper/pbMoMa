@@ -1,11 +1,10 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import find_peaks
 import os
 
 # 读取视频文件
-video_path = 'media/video_input_01.avi'
+video_path = 'media/video_input_01_cut.mp4'
 cap = cv2.VideoCapture(video_path)
 
 # 获取视频的总帧数和帧率
@@ -25,6 +24,10 @@ gray_first_frame = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
 # 检测特征点和计算描述符
 kp1, des1 = sift.detectAndCompute(gray_first_frame, None)
 
+# 在第一帧上绘制特征点并保存图像
+first_frame_with_keypoints = cv2.drawKeypoints(first_frame, kp1, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+cv2.imwrite("first_frame_with_keypoints.png", first_frame_with_keypoints)
+
 # 创建一个空的轨迹列表
 tracks = [[] for _ in range(len(kp1))]
 
@@ -41,7 +44,7 @@ try:
 
         # 打印帧数信息
         frame_count += 1
-        print(f"Processing Frame {frame_count}")
+        print(f"Processing Frame {frame_count} / {total_frames}")
 
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -128,24 +131,4 @@ plt.ylabel('Frequency (Hz)')
 plt.title('Vibration Frequencies')
 
 plt.subplot(122)
-plt.plot(amplitudes)
-plt.xlabel('Track Index')
-plt.ylabel('Amplitude')
-plt.title('Vibration Amplitudes')
-
-plt.tight_layout()
-
-# 检查目录是否存在，如果不存在则创建
-save_dir = './fig'
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
-    print(f"Directory {save_dir} created.")
-else:
-    print(f"Directory {save_dir} already exists.")
-
-# 保存绘制的图片到指定文件夹下
-save_path = os.path.join(save_dir, 'vibration_analysis_plot.png')
-plt.savefig(save_path)
-plt.show()
-
-print(f"Vibration analysis plot saved to {save_path}")
+plt.plot

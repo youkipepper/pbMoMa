@@ -61,7 +61,7 @@ def crop_video(input_file, output_file, crop_by_time=True):
 
 
 if __name__ == "__main__":
-    input_file = 'media/shihumobile.mp4'    # 输入视频文件名
+    input_file = 'media/shihumobile_cut.mp4'    # 输入视频文件名
 
     # 获取输入文件的原始文件名和扩展名
     file_name, file_ext = os.path.splitext(os.path.basename(input_file))

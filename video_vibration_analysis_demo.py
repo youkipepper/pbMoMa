@@ -48,7 +48,6 @@ kp1, des1 = sift.detectAndCompute(gray_first_frame[y:y+h, x:x+w], None)
 first_frame_with_keypoints = cv2.drawKeypoints(first_frame[y:y+h, x:x+w], kp1, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 cv2.imwrite("first_frame_with_keypoints.png", first_frame_with_keypoints)
 
-
 # 创建一个空的轨迹列表
 tracks = [[] for _ in range(len(kp1))]
 
@@ -72,13 +71,9 @@ try:
         # 检测特征点和计算描述符，仅在感兴趣区域内进行
         kp2, des2 = sift.detectAndCompute(gray_frame[y:y+h, x:x+w], None)
 
-        # # 使用FLANN匹配器匹配特征点
-        # flann = cv2.FlannBasedMatcher()
-        # matches = flann.knnMatch(des1, des2, k=1)
-
         # 使用FLANN匹配器匹配特征点
-        bf = cv2.BFMatcher()
-        matches = bf.knnMatch(des1, des2, k=1)
+        flann = cv2.FlannBasedMatcher()
+        matches = flann.knnMatch(des1, des2, k=1)
 
         # 选择良好的匹配
         good_matches = []
