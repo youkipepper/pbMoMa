@@ -58,3 +58,9 @@ target/
 
 *.avi
 *.mp4
+
+**/fig
+**/media
+**/data
+**/csv
+

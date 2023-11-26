@@ -1,73 +1,88 @@
 import cv2
 import os
+from video_rotate import rotate_video, select_two_points, calculate_rotation_angle
+from progress_bar import print_progress_bar
 
-def crop_video(input_file, output_file, crop_by_time=True):
-    # 打开视频文件
-    cap = cv2.VideoCapture(input_file)
+def video_info_and_cut(video_path):
+    cap = cv2.VideoCapture(video_path)
 
-    # 检查视频文件是否成功打开
     if not cap.isOpened():
-        print("无法打开视频文件")
-        return
+        print("Error: Unable to open video.")
+        return None
 
-    # 在窗口上选择裁剪区域
-    cv2.namedWindow("Video Cropper")
-    ret, frame = cap.read()
-    if not ret:
-        print("无法读取视频帧")
-        cap.release()
-        cv2.destroyAllWindows()
-        return
+    # 获取视频信息
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    duration = total_frames / fps
+    fourcc_code = int(cap.get(cv2.CAP_PROP_FOURCC))
+    fourcc = fourcc_code
 
-    (x, y, w, h) = cv2.selectROI("Video Cropper", frame, fromCenter=False)
-    cv2.destroyAllWindows()
+    print(f"Video Dimensions: {frame_width}x{frame_height}")
+    print(f"Total Frames: {total_frames}")
+    print(f"Frame Rate: {fps} fps")
+    print(f"Duration: {duration} seconds")
+    print(f"FourCC Code: {fourcc_code}")
 
-    # 开始读取视频并裁剪
-    out = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'mp4v'), cap.get(5), (w, h))
+    # 获取裁剪时间
+    start_time = input("Enter start time in seconds (or leave blank to start from beginning): ")
+    end_time = input("Enter end time in seconds (or leave blank to end at the video's end): ")
 
-    if crop_by_time:
-        start_time = float(input("请输入开始时间（秒）："))
-        end_time = float(input("请输入结束时间（秒）："))
-    else:
-        start_time = 0
-        end_time = float('inf')  # 无穷大，即按照原视频长度剪裁
+    start_frame = int(float(start_time) * fps) if start_time else 0
+    end_frame = int(float(end_time) * fps) if end_time else total_frames
+
+    start_label = start_time if start_time else "start"
+    end_label = end_time if end_time else "end"
+
+    # 设置临时输出文件路径
+    base_name, ext = os.path.splitext(os.path.basename(video_path))
+    output_path_temp = os.path.join(os.path.dirname(video_path), f"{base_name}_temp{ext}")
+
+    # 创建视频写入对象
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    out = cv2.VideoWriter(output_path_temp, fourcc, fps, (width, height))
+
+    current_frame = 0
 
     while True:
         ret, frame = cap.read()
-        if not ret:
+        if not ret or current_frame >= end_frame:
             break
 
-        # 获取当前帧的时间
-        current_time = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
+        if current_frame >= start_frame:
+            out.write(frame)
 
-        # 在指定时间范围内进行裁剪
-        if start_time <= current_time <= end_time:
-            # 裁剪视频帧
-            cropped_frame = frame[y:y+h, x:x+w]
+        current_frame += 1
+        print_progress_bar(current_frame, total_frames, prefix='Cropping video:', suffix='Complete', length=50)
 
-            # 写入裁剪后的帧到输出视频
-            out.write(cropped_frame)
-
-        # 如果超过结束时间，则停止裁剪
-        if current_time > end_time:
-            break
-
-    # 释放视频资源
     cap.release()
     out.release()
-    cv2.destroyAllWindows()
 
-    print("视频画面裁剪完成")
-
+    # 确定是否替换原文件
+    replace_original = input("Do you want to replace the original file? (y/n): ").strip().lower()
+    if replace_original == 'y':
+        os.replace(output_path_temp, video_path)
+        return video_path
+    else:
+        # 设置输出文件路径，包含开始时间和结束时间
+        output_path_final = os.path.join(os.path.dirname(video_path), f"{base_name}_cropped_{start_label}-{end_label}{ext}")
+        os.rename(output_path_temp, output_path_final)
+        return output_path_final
 
 if __name__ == "__main__":
-    input_file = 'media/shihumobile_cut.mp4'    # 输入视频文件名
+    video_path = input("Enter the path of the video file: ")
+    result_path = video_info_and_cut(video_path)
+    if result_path:
+        print(f"Video has been processed and saved at: {result_path}")
 
-    # 获取输入文件的原始文件名和扩展名
-    file_name, file_ext = os.path.splitext(os.path.basename(input_file))
 
-    # 拼接新的文件名
-    output_file = os.path.join('media', f'{file_name}_cut{file_ext}')
-
-    crop_by_time = input("是否按照时间范围剪裁？(y/n): ").strip().lower() == 'y'
-    crop_video(input_file, output_file, crop_by_time)
+    # 询问用户是否需要旋转视频
+    rotate_choice = input("Do you want to rotate the video? (y/n): ").strip().lower()
+    if rotate_choice == 'y':
+        cap = cv2.VideoCapture(result_path)
+        points = select_two_points(cap)
+        if points:
+            angle = calculate_rotation_angle(points)
+            result_path = rotate_video(result_path, angle)  # 更新input_path为旋转后的视频路径

@@ -1,162 +1,222 @@
 from perceptual.filterbank import *
-
 import cv2
-
-# determine what OpenCV version we are using
-try:
-    import cv2.cv as cv
-    USE_CV2 = True
-except ImportError:
-    # OpenCV 3.x does not have cv2.cv submodule
-    USE_CV2 = False
-    
 import sys
 import numpy as np
-
 from pyr2arr import Pyramid2arr
 from temporal_filters import IdealFilterWindowed, ButterBandpassFilter
+import subprocess
+import os
 
+from progress_bar import print_progress_bar
 
-def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq):
+# 用户选择ROI模式
+def select_roi_mode(vidReader, width, height):
+    print("Select ROI mode: 1) Full video 2) Manual selection 3) Enter ROI")
+    choice = input("Enter choice (1, 2, or 3): ").strip()
 
-    # initialize the steerable complex pyramid
+    if choice == '1':
+        # 使用整个视频
+        return 0, 0, width, height
+    elif choice == '2':
+        # 手动选择ROI
+        _, first_frame = vidReader.read()
+        roi = cv2.selectROI("Select ROI", first_frame, fromCenter=False)
+        cv2.destroyWindow("Select ROI")
+        return roi
+    elif choice == '3':
+        # 用户输入ROI参数
+        while True:
+            try:
+                x, y = map(int, input("Enter ROI top-left corner (x, y): ").split(','))
+                w, h = map(int, input("Enter ROI size (width, height): ").split(','))
+                # 确保ROI在图像范围内
+                if 0 <= x < width and 0 <= y < height and x + w <= width and y + h <= height:
+                    print(f"Top-left corner: ({x},{y}), ROI Size: {w}x{h}")
+                    return x, y, w, h
+                else:
+                    print("ROI is out of image bounds. Please try again.")
+            except ValueError:
+                print("Invalid input. Please enter integers.")
+
+# 基于相位的视频放大函数
+def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h):
+    # 初始化可导向复数金字塔
     steer = Steerable(5)
     pyArr = Pyramid2arr(steer)
 
+    # 读取视频文件
     print("Reading:", vidFname)
 
-    # get vid properties
+    # 获取视频属性
     vidReader = cv2.VideoCapture(vidFname)
-    if USE_CV2:
-        # OpenCV 2.x interface
-        vidFrames = int(vidReader.get(cv.CV_CAP_PROP_FRAME_COUNT))    
-        width = int(vidReader.get(cv.CV_CAP_PROP_FRAME_WIDTH))
-        height = int(vidReader.get(cv.CV_CAP_PROP_FRAME_HEIGHT))
-        fps = int(vidReader.get(cv.CV_CAP_PROP_FPS))
-        func_fourcc = cv.CV_FOURCC
-    else:
-        # OpenCV 3.x interface
-        vidFrames = int(vidReader.get(cv2.CAP_PROP_FRAME_COUNT))    
-        width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(vidReader.get(cv2.CAP_PROP_FPS))
-        func_fourcc = cv2.VideoWriter_fourcc
 
+    # 获取原视频的 FourCC 编码
+    original_fourcc = int(vidReader.get(cv2.CAP_PROP_FOURCC))
+    fourcc_chars = "".join([chr((original_fourcc >> 8 * i) & 0xFF) for i in range(4)])
+
+    vidFrames = int(vidReader.get(cv2.CAP_PROP_FRAME_COUNT))    
+    width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(vidReader.get(cv2.CAP_PROP_FPS))
+    func_fourcc = cv2.VideoWriter_fourcc
+
+    # 如果fps未知，则默认为30
     if np.isnan(fps):
         fps = 30
 
+    # 输出视频的帧数、分辨率和帧率
     print(' %d frames' % vidFrames)
     print(' (%d x %d)' % (width, height))
     print(' FPS:%d' % fps)
 
-    # video Writer
-    fourcc = func_fourcc('M', 'J', 'P', 'G')
-    vidWriter = cv2.VideoWriter(vidFnameOut, fourcc, int(fps), (width,height), 1)
+    # # 选择ROI
+    # _, first_frame = vidReader.read()
+    # roi = cv2.selectROI("Select ROI", first_frame, fromCenter=False)
+    # x, y, w, h = map(int, roi)
+    # roi_center = (x + w // 2, y + h // 2)
+    # print(f"ROI Center: {roi_center}, ROI Size: {w}x{h}")
+    # cv2.destroyWindow("Select ROI")
+
+    print(f"ROI Top-Left Corner: ({x}, {y}), ROI Size: {w}x{h}")
+
+    # 获取原视频的文件名（不包括扩展名）
+    base_name = os.path.splitext(os.path.basename(vidFname))[0]
+
+    # 构建输出目录路径（在media_mag文件夹中，以原视频文件名命名的子文件夹）
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(vidFname)), "media_mag", base_name)
+
+    # 创建输出目录（如果不存在）
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 构建输出视频的新路径（包含ROI信息）
+    output_vid_path = os.path.join(output_dir, f"{base_name}_roi({x},{y},{w},{h})_Mag{factor}_Ideal-lo{lowFreq}-hi{highFreq}.avi")
+
+    # 视频写入器设置
+    fourcc = cv2.VideoWriter_fourcc(*fourcc_chars)
+    vidWriter = cv2.VideoWriter(output_vid_path, fourcc, int(fps), (width, height), 1)
     print('Writing:', vidFnameOut)
 
-    # how many frames
+    # 处理的帧数
     nrFrames = min(vidFrames, maxFrames)
 
-    # read video
-    #print steer.height, steer.nbands
-
-    # setup temporal filter
+    # 设置时域滤波器
     filter = IdealFilterWindowed(windowSize, lowFreq, highFreq, fps=fpsForBandPass, outfun=lambda x: x[0])
-    #filter = ButterBandpassFilter(1, lowFreq, highFreq, fps=fpsForBandPass)
 
+    # 逐帧读取并处理视频
     print('FrameNr:')
-    for frameNr in range( nrFrames + windowSize ):
-        print(frameNr)
-        sys.stdout.flush() 
+    for frameNr in range(nrFrames + windowSize):
+        print_progress_bar(frameNr, nrFrames, prefix='Amplifying motion:', suffix='Complete')
+        # print(f"Processing Frame {frameNr} / {nrFrames}")
+        sys.stdout.flush()  # 刷新输出
 
         if frameNr < nrFrames:
-            # read frame
+            # 读取一帧
             _, im = vidReader.read()
-               
             if im is None:
-                # if unexpected, quit
                 break
-			
-            # convert to gray image
+
+            # 转换为灰度图像
             if len(im.shape) > 2:
                 grayIm = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
             else:
-                # already a grayscale image?
                 grayIm = im
 
-            # get coeffs for pyramid
-            coeff = steer.buildSCFpyr(grayIm)
+            # 只处理ROI区域
+            grayIm_roi = grayIm[y:y+h, x:x+w]
+            
+            # ###rgb_p1
+            # # 从彩色图像中提取亮度通道
+            # im_roi_color = im[y:y+h, x:x+w]
+            # grayIm_roi = cv2.cvtColor(im_roi_color, cv2.COLOR_RGB2GRAY)
+            # ###rgb_p1
 
-            # add image pyramid to video array
-            # NOTE: on first frame, this will init rotating array to store the pyramid coeffs                 
+            # 构建金字塔并获取系数
+            coeff = steer.buildSCFpyr(grayIm_roi)
+
+            # 添加到视频数组
             arr = pyArr.p2a(coeff)
-
-
             phases = np.angle(arr)
 
-            # add to temporal filter
+            # 更新时域滤波器
             filter.update([phases])
 
-            # try to get filtered output to continue            
+            # 尝试获取滤波输出
             try:
                 filteredPhases = filter.next()
             except StopIteration:
                 continue
 
-            print('*')
-            
-            # motion magnification
-            magnifiedPhases = (phases - filteredPhases) + filteredPhases*factor
-            
-            # create new array
-            newArr = np.abs(arr) * np.exp(magnifiedPhases * 1j)
+            # 运动放大
+            magnifiedPhases = (phases - filteredPhases) + filteredPhases * factor
 
-            # create pyramid coeffs     
+            # 重建新数组
+            newArr = np.abs(arr) * np.exp(magnifiedPhases * 1j)
             newCoeff = pyArr.a2p(newArr)
-            
-            # reconstruct pyramid
+
+            # 重建金字塔并获取输出图像
             out = steer.reconSCFpyr(newCoeff)
 
-            # clip values out of range
-            out[out>255] = 255
-            out[out<0] = 0
-            
-            # make a RGB image
-            rgbIm = np.empty( (out.shape[0], out.shape[1], 3 ) )
-            rgbIm[:,:,0] = out
-            rgbIm[:,:,1] = out
-            rgbIm[:,:,2] = out
-            
-            #write to disk
+            # 转换为RGB图像
+            rgbIm = np.empty((out.shape[0], out.shape[1], 3))
+            rgbIm[:, :, 0] = out
+            rgbIm[:, :, 1] = out
+            rgbIm[:, :, 2] = out
+
+            # 写入到磁盘
             res = cv2.convertScaleAbs(rgbIm)
             vidWriter.write(res)
 
-    # free the video reader/writer
+            # 将ROI结果放回原始图像
+            res = cv2.convertScaleAbs(rgbIm)
+            im[y:y+h, x:x+w] = res
+
+            # ###rgb_p2
+            # # 将输出转换为uint8类型
+            # out_uint8 = cv2.convertScaleAbs(out)
+
+            # # 创建mask，确定哪些像素发生了变化
+            # mask = cv2.absdiff(grayIm_roi, out_uint8) > 0
+            # mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+
+            # # 将处理后的亮度通道与原始彩色图像的颜色通道合并
+            # out_rgb = cv2.cvtColor(out_uint8, cv2.COLOR_GRAY2RGB)
+            # im_roi_color = np.where((mask_3d), out_rgb, im_roi_color)
+
+            # # 将处理后的ROI区域放回原始图像
+            # im[y:y+h, x:x+w] = im_roi_color
+            # ###pgb_p2
+
+            vidWriter.write(im)
+
+    # 释放视频读写器资源
     vidReader.release()
-    vidWriter.release()   
+    vidWriter.release()
 
+    # 返回输出视频的路径
+    return output_vid_path
 
-################# main script
+# 主脚本部分
+if __name__ == "__main__":
+    # 设置视频源、输出文件名、最大帧数等参数
+    vidFname = 'media/test/mov.MOV'
+    vidReader = cv2.VideoCapture(vidFname)
+    width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-#vidFname = 'media/baby.mp4';
-#vidFname = 'media/WIN_20151208_17_11_27_Pro.mp4.normalized.avi'
-#vidFname = 'media/embryos01_30s.mp4'
-vidFname = 'media/shihumobile.mp4'
-# vidFname = 'media/box.mp4'
+    # 用户选择ROI模式
+    x, y, w, h = select_roi_mode(vidReader, width, height)
 
-# maximum nr of frames to process
-maxFrames = 60000
-# the size of the sliding window
-windowSize = 30
-# the magnifaction factor
-factor = 20
-# the fps used for the bandpass
-fpsForBandPass = 600 # use -1 for input video fps
-# low ideal filter
-lowFreq = 80
-# high ideal filter
-highFreq = 85
-# output video filename
-vidFnameOut = vidFname + '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)
+    maxFrames = 60000
+    windowSize = 30
+    factor = 5
+    fpsForBandPass = 600
+    lowFreq = 4
+    highFreq = 15
+    # vidFnameOut = vidFname + '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)
 
-phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq)
+    # 构建输出文件名
+    vidFnameOut = os.path.join('media_mag', os.path.basename(vidFname).replace('.mp4', '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)))
+
+    # 可选：将输出视频转换为MP4格式
+    # output_vid_path = phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq)
+    # subprocess.call(['ffmpeg', '-i', output_vid_path, output_vid_path.replace('.avi', '.mp4')])
