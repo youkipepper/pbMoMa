@@ -202,7 +202,7 @@ def gray_level_detct(video_path, width, height, alpha , n):
         print("无法读取视频文件")
         return
     
-    choice = input("选择ROI方式：手动绘制(M) 或 点选中心点(P): ").strip().upper()
+    choice = input("Press 'M' to manually select ROI or 'P' to manually select ROI center_point ").strip().upper()
 
     if choice == 'M':
 

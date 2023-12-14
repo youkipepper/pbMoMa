@@ -67,10 +67,17 @@ def rotate_video(video_path, angle):
             break
 
         rotated = cv2.warpAffine(frame, rotation_matrix, (width, height))
+
+        cv2.imshow("Rotated Video", rotated)
+
         out.write(rotated)
 
         current_frame += 1
         print_progress_bar(current_frame, total_frames, prefix='Rotating video:', suffix='Complete', length=50)
+
+        # 如果按下 'q' 键，则退出循环
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     cap.release()
     out.release()

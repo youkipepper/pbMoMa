@@ -4,6 +4,68 @@ import matplotlib.pyplot as plt
 import os
 import sys
 
+from scipy.signal import find_peaks
+
+from AMPD import AMPD
+
+marked_points = []
+
+# def on_click(event, freqs, amplitudes):
+#     """处理点击事件，标记并存储最近的峰值点"""
+#     click_freq = event.xdata
+#     if click_freq is None:  # 忽略图外的点击
+#         return
+#     peaks, _ = find_peaks(amplitudes)
+#     nearest_peak = peaks[np.abs(freqs[peaks] - click_freq).argmin()]
+
+#     marked_point = (freqs[nearest_peak], amplitudes[nearest_peak])
+#     marked_points.append(marked_point)
+
+#     plt.plot(marked_point[0], marked_point[1], 'ro')
+#     plt.text(marked_point[0], marked_point[1], f'({marked_point[0]:.2f}, {marked_point[1]:.2f})')
+#     plt.draw()
+
+def mark_highest_peak(freqs, amplitudes, ax):
+    peaks, _ = find_peaks(amplitudes)
+    if peaks.size > 0:
+        highest_peak = peaks[np.argmax(amplitudes[peaks])]  # 找到最大振幅的峰值
+        if freqs[highest_peak] > 0:  # 确保频率大于0
+            marked_point = (freqs[highest_peak], amplitudes[highest_peak])
+            ax.plot(marked_point[0], marked_point[1], 'go')  # 使用绿色标记最大峰值点
+            ax.text(marked_point[0], marked_point[1], f'({marked_point[0]:.2f}, {marked_point[1]:.2f})')
+
+def on_click(event, freqs, amplitudes, ax, fig):
+    """处理点击事件，标记或取消标记最近的峰值点"""
+    click_freq = event.xdata
+    if click_freq is None:  # 忽略图外的点击
+        return
+
+    # 左键点击选择点
+    if event.button == 1:
+        peaks, _ = find_peaks(amplitudes)
+        nearest_peak = peaks[np.abs(freqs[peaks] - click_freq).argmin()]
+        marked_point = (freqs[nearest_peak], amplitudes[nearest_peak])
+        marked_points.append(marked_point)
+        ax.plot(marked_point[0], marked_point[1], 'ro')
+        ax.text(marked_point[0], marked_point[1], f'({marked_point[0]:.2f}, {marked_point[1]:.2f})')
+
+    # 右键点击取消最近的选择
+    elif event.button == 3:
+        if marked_points:
+            marked_points.pop()
+            # 重绘图像以更新标记
+            ax.clear()
+            ax.plot(freqs, amplitudes, linewidth=1.5)
+            for point in marked_points:
+                ax.plot(point[0], point[1], 'ro')
+                ax.text(point[0], point[1], f'({point[0]:.2f}, {point[1]:.2f})')
+            ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel('Amplitude')
+            ax.set_title('Vibration Spectrum')
+
+    # 强制重新绘制图像
+    fig.canvas.draw()
+
 def extract_vibration_info(track, sampling_rate):
     if len(track) == 0:
         return [], []
@@ -57,16 +119,77 @@ def process_csv_data(csv_file_path, sampling_rate):
     # 提取振动信息
     freqs, amplitudes = extract_vibration_info(y_tracks, sampling_rate)
 
-    # 生成频谱图
-    plt.figure(figsize=(14, 6), dpi=100)
-    plt.plot(freqs, amplitudes, linewidth=1.5)
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Amplitude')
-    plt.title(f'Vibration Spectrum')
+    positive_freqs = freqs[:len(freqs)//2]
+    positive_amplitudes = amplitudes[:len(amplitudes)//2]
+
+    global marked_points
+    marked_points.clear()  # 清空标记点列表
+
+    # 绘制频谱图并连接点击事件
+    fig, ax = plt.subplots(figsize=(14, 6), dpi=100)
+    ax.plot(positive_freqs, positive_amplitudes, linewidth=1.5)
+    cid = fig.canvas.mpl_connect('button_press_event', lambda event: on_click(event, positive_freqs, positive_amplitudes, ax, fig))
+
+    ax.set_xlabel('Frequency (Hz)')
+    ax.set_ylabel('Amplitude')
+    ax.set_title('Vibration Spectrum')
     plt.tight_layout()
+
+    # 保存图像的文件名，您需要根据需要修改
     vibration_spectrum_filename = os.path.join(output_folder, f'{base_name}_vibration_spectrum.png')
     plt.savefig(vibration_spectrum_filename, dpi=300)
-    plt.show()
+
+    mark_choice = input("Do u wanna mark the point? (y/n)")
+    if mark_choice == "y":
+
+        plt.show()
+
+        # 重新绘制图像以包含标注的点
+        fig, ax = plt.subplots(figsize=(14, 6), dpi=100)
+        ax.plot(positive_freqs, positive_amplitudes, linewidth=1.5)
+        for point in marked_points:
+            ax.plot(point[0], point[1], 'ro')
+            ax.text(point[0], point[1], f'({point[0]:.2f}, {point[1]:.2f})')
+
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Amplitude')
+        ax.set_title('Vibration Spectrum with Marked Peaks')
+        plt.tight_layout()
+
+        vibration_spectrum_marked_filename = os.path.join(output_folder, f'{base_name}_vibration_spectrum_marked.png')
+        plt.savefig(vibration_spectrum_marked_filename, dpi=300)
+
+        selected_freqs = [abs(point[0]) for point in marked_points]  # 转换为绝对值
+        unique_freqs = set(selected_freqs)  # 去除重复值
+        sorted_freqs = sorted(unique_freqs)  # 排序
+        return sorted_freqs 
+    else:
+        # 自动标记最大的峰值点
+        fig, ax = plt.subplots(figsize=(14, 6), dpi=100)
+        ax.plot(positive_freqs, positive_amplitudes, linewidth=1.5)
+        mark_highest_peak(positive_freqs, positive_amplitudes, ax)
+
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('Amplitude')
+        ax.set_title('Vibration Spectrum with Highest Peak Marked')
+        plt.tight_layout()
+
+        vibration_spectrum_marked_filename = os.path.join(output_folder, f'{base_name}_vibration_spectrum_highest_peak.png')
+        plt.savefig(vibration_spectrum_marked_filename, dpi=300)
+
+    ######
+    # # 生成频谱图
+    # plt.figure(figsize=(14, 6), dpi=100)
+    # plt.plot(freqs, amplitudes, linewidth=1.5)
+    # plt.xlabel('Frequency (Hz)')
+    # plt.ylabel('Amplitude')
+    # plt.title(f'Vibration Spectrum')
+    # plt.tight_layout()
+    # vibration_spectrum_filename = os.path.join(output_folder, f'{base_name}_vibration_spectrum.png')
+    # plt.savefig(vibration_spectrum_filename, dpi=300)
+    ######
+
+    # plt.show()
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

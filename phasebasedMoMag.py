@@ -198,7 +198,7 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
 # 主脚本部分
 if __name__ == "__main__":
     # 设置视频源、输出文件名、最大帧数等参数
-    vidFname = 'media/test/mov.MOV'
+    vidFname = '/Users/youkipepper/Desktop/pbMoMa/media/2023-11-30/video_231130_02.mp4'
     vidReader = cv2.VideoCapture(vidFname)
     width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -218,5 +218,5 @@ if __name__ == "__main__":
     vidFnameOut = os.path.join('media_mag', os.path.basename(vidFname).replace('.mp4', '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)))
 
     # 可选：将输出视频转换为MP4格式
-    # output_vid_path = phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq)
-    # subprocess.call(['ffmpeg', '-i', output_vid_path, output_vid_path.replace('.avi', '.mp4')])
+    output_vid_path = phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h)
+    subprocess.call(['ffmpeg', '-i', output_vid_path, output_vid_path.replace('.avi', '.mp4')])

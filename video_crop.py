@@ -77,12 +77,3 @@ if __name__ == "__main__":
     if result_path:
         print(f"Video has been processed and saved at: {result_path}")
 
-
-    # 询问用户是否需要旋转视频
-    rotate_choice = input("Do you want to rotate the video? (y/n): ").strip().lower()
-    if rotate_choice == 'y':
-        cap = cv2.VideoCapture(result_path)
-        points = select_two_points(cap)
-        if points:
-            angle = calculate_rotation_angle(points)
-            result_path = rotate_video(result_path, angle)  # 更新input_path为旋转后的视频路径
