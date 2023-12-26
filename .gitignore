@@ -61,8 +61,6 @@ target/
 
 **/fig
 **/media
-**/data
-**/csv
 
 *.png
 *.txt
