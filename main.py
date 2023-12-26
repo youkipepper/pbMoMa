@@ -153,5 +153,5 @@ else:
     # elif edge_choice == "2":
     #     frequencies = frequency(mag_vid_path, x, y, w, h, 'canny after amplified')
 
-    frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest after amplified')
-    # frequencies = frequency(mag_vid_path, x, y, w, h, 'canny after amplified')
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest_amplified')
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified')

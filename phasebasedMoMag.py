@@ -9,28 +9,34 @@ import os
 
 from progress_bar import print_progress_bar
 
+
 # 用户选择ROI模式
 def select_roi_mode(vidReader, width, height):
     print("Select ROI mode: 1) Full video 2) Manual selection 3) Enter ROI")
     choice = input("Enter choice (1, 2, or 3): ").strip()
 
-    if choice == '1':
+    if choice == "1":
         # 使用整个视频
         return 0, 0, width, height
-    elif choice == '2':
+    elif choice == "2":
         # 手动选择ROI
         _, first_frame = vidReader.read()
         roi = cv2.selectROI("Select ROI", first_frame, fromCenter=False)
         cv2.destroyWindow("Select ROI")
         return roi
-    elif choice == '3':
+    elif choice == "3":
         # 用户输入ROI参数
         while True:
             try:
-                x, y = map(int, input("Enter ROI top-left corner (x, y): ").split(','))
-                w, h = map(int, input("Enter ROI size (width, height): ").split(','))
+                x, y = map(int, input("Enter ROI top-left corner (x, y): ").split(","))
+                w, h = map(int, input("Enter ROI size (width, height): ").split(","))
                 # 确保ROI在图像范围内
-                if 0 <= x < width and 0 <= y < height and x + w <= width and y + h <= height:
+                if (
+                    0 <= x < width
+                    and 0 <= y < height
+                    and x + w <= width
+                    and y + h <= height
+                ):
                     print(f"Top-left corner: ({x},{y}), ROI Size: {w}x{h}")
                     return x, y, w, h
                 else:
@@ -38,8 +44,22 @@ def select_roi_mode(vidReader, width, height):
             except ValueError:
                 print("Invalid input. Please enter integers.")
 
+
 # 基于相位的视频放大函数
-def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h):
+def phaseBasedMagnify(
+    vidFname,
+    vidFnameOut,
+    maxFrames,
+    windowSize,
+    factor,
+    fpsForBandPass,
+    lowFreq,
+    highFreq,
+    x,
+    y,
+    w,
+    h,
+):
     # 初始化可导向复数金字塔
     steer = Steerable(5)
     pyArr = Pyramid2arr(steer)
@@ -54,7 +74,7 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
     original_fourcc = int(vidReader.get(cv2.CAP_PROP_FOURCC))
     fourcc_chars = "".join([chr((original_fourcc >> 8 * i) & 0xFF) for i in range(4)])
 
-    vidFrames = int(vidReader.get(cv2.CAP_PROP_FRAME_COUNT))    
+    vidFrames = int(vidReader.get(cv2.CAP_PROP_FRAME_COUNT))
     width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(vidReader.get(cv2.CAP_PROP_FPS))
@@ -65,9 +85,9 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
         fps = 30
 
     # 输出视频的帧数、分辨率和帧率
-    print(' %d frames' % vidFrames)
-    print(' (%d x %d)' % (width, height))
-    print(' FPS:%d' % fps)
+    print(" %d frames" % vidFrames)
+    print(" (%d x %d)" % (width, height))
+    print(" FPS:%d" % fps)
 
     # # 选择ROI
     # _, first_frame = vidReader.read()
@@ -83,29 +103,38 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
     base_name = os.path.splitext(os.path.basename(vidFname))[0]
 
     # 构建输出目录路径（在media_mag文件夹中，以原视频文件名命名的子文件夹）
-    output_dir = os.path.join(os.path.dirname(os.path.dirname(vidFname)), "media_mag", base_name)
+    output_dir = os.path.join(
+        os.path.dirname(os.path.dirname(vidFname)), "media_mag", base_name
+    )
 
     # 创建输出目录（如果不存在）
     os.makedirs(output_dir, exist_ok=True)
 
     # 构建输出视频的新路径（包含ROI信息）
-    output_vid_path = os.path.join(output_dir, f"{base_name}_roi({x},{y},{w},{h})_Mag{factor}_Ideal-lo{lowFreq}-hi{highFreq}.avi")
+    output_vid_path = os.path.join(
+        output_dir,
+        f"{base_name}_roi({x},{y},{w},{h})_Mag{factor}_Ideal-lo{lowFreq}-hi{highFreq}.avi",
+    )
 
     # 视频写入器设置
     fourcc = cv2.VideoWriter_fourcc(*fourcc_chars)
     vidWriter = cv2.VideoWriter(output_vid_path, fourcc, int(fps), (width, height), 1)
-    print('Writing:', vidFnameOut)
+    print("Writing:", vidFnameOut)
 
     # 处理的帧数
     nrFrames = min(vidFrames, maxFrames)
 
     # 设置时域滤波器
-    filter = IdealFilterWindowed(windowSize, lowFreq, highFreq, fps=fpsForBandPass, outfun=lambda x: x[0])
+    filter = IdealFilterWindowed(
+        windowSize, lowFreq, highFreq, fps=fpsForBandPass, outfun=lambda x: x[0]
+    )
 
     # 逐帧读取并处理视频
-    print('FrameNr:')
+    print("FrameNr:")
     for frameNr in range(nrFrames + windowSize):
-        print_progress_bar(frameNr, nrFrames, prefix='Amplifying motion:', suffix='Complete')
+        print_progress_bar(
+            frameNr, nrFrames, prefix="Amplifying motion:", suffix="Complete"
+        )
         # print(f"Processing Frame {frameNr} / {nrFrames}")
         sys.stdout.flush()  # 刷新输出
 
@@ -122,8 +151,8 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
                 grayIm = im
 
             # 只处理ROI区域
-            grayIm_roi = grayIm[y:y+h, x:x+w]
-            
+            grayIm_roi = grayIm[y : y + h, x : x + w]
+
             # ###rgb_p1
             # # 从彩色图像中提取亮度通道
             # im_roi_color = im[y:y+h, x:x+w]
@@ -168,7 +197,7 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
 
             # 将ROI结果放回原始图像
             res = cv2.convertScaleAbs(rgbIm)
-            im[y:y+h, x:x+w] = res
+            im[y : y + h, x : x + w] = res
 
             # ###rgb_p2
             # # 将输出转换为uint8类型
@@ -195,10 +224,11 @@ def phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsF
     # 返回输出视频的路径
     return output_vid_path
 
+
 # 主脚本部分
 if __name__ == "__main__":
     # 设置视频源、输出文件名、最大帧数等参数
-    vidFname = '/Users/youkipepper/Desktop/pbMoMa/media/2023-11-30/video_231130_02.mp4'
+    vidFname = "/Users/youkipepper/Desktop/pbMoMa/media/2023-11-30/video_231130_02.mp4"
     vidReader = cv2.VideoCapture(vidFname)
     width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -215,8 +245,28 @@ if __name__ == "__main__":
     # vidFnameOut = vidFname + '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)
 
     # 构建输出文件名
-    vidFnameOut = os.path.join('media_mag', os.path.basename(vidFname).replace('.mp4', '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)))
+    vidFnameOut = os.path.join(
+        "media_mag",
+        os.path.basename(vidFname).replace(
+            ".mp4", "-Mag%dIdeal-lo%d-hi%d.avi" % (factor, lowFreq, highFreq)
+        ),
+    )
 
     # 可选：将输出视频转换为MP4格式
-    output_vid_path = phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h)
-    subprocess.call(['ffmpeg', '-i', output_vid_path, output_vid_path.replace('.avi', '.mp4')])
+    output_vid_path = phaseBasedMagnify(
+        vidFname,
+        vidFnameOut,
+        maxFrames,
+        windowSize,
+        factor,
+        fpsForBandPass,
+        lowFreq,
+        highFreq,
+        x,
+        y,
+        w,
+        h,
+    )
+    subprocess.call(
+        ["ffmpeg", "-i", output_vid_path, output_vid_path.replace(".avi", ".mp4")]
+    )

@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import pandas as pd
-from darkest_edge import darkest_edge_detection
+# from darkest_edge import darkest_edge_detection
 
 from progress_bar import print_progress_bar
 
@@ -63,7 +63,10 @@ def video_edge(video_path):
         for roi in rois:
             x, y, w, h = roi
             roi_frame = gray_frame[y:y+h, x:x+w]
-            edge_points = darkest_edge_detection(roi_frame, 6)
+            # edge_points = darkest_edge_detection(roi_frame, 6)
+            edge_image = cv2.Canny(roi_frame, 50, 150)
+            y_coords, x_coords = np.where(edge_image == 255)
+            edge_points = list(zip(x_coords, y_coords)) 
 
             # print(f"Frame {frame_count}: Detected {len(edge_points)} edge points in ROI {roi}")  # 调试信息
 
@@ -104,7 +107,6 @@ def model(y_matrix, start_col, end_col, sample_rate, frequency):
         yf = fft(nonzero_data)
         xf = fftfreq(N, 1 / sample_rate)
 
-
         # 找到最接近输入频率的频率索引
         freq_index = np.argmin(np.abs(xf - frequency))
         amplitude = np.abs(yf[freq_index])
@@ -133,5 +135,5 @@ if __name__ == "__main__":
         # 将每行作为CSV文件中的一行
         pd.DataFrame(y_matrix).to_csv('output_matrix.csv', header=False, index=False)
     
-    model(y_matrix, start_col, end_col, 9.75 , 100)
+    model(y_matrix, start_col, end_col, 10 , 100)
 
