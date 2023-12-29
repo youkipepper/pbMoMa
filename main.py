@@ -16,7 +16,7 @@ input_path = input("Enter the path of the file: ")
 if input_path.endswith('.xls'):
     csv_file_path = xls2csv(input_path)
     base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
-    process_csv_data(csv_file_path, 100)
+    process_csv_data(csv_file_path, 50)
 
 # if the file is csv
 elif input_path.endswith('.csv'):
@@ -38,6 +38,7 @@ else:
     gray_detct_choice = input("Do you wana use gray_level_detct.py? (y/n): ").strip().lower()
     if gray_detct_choice == 'y':
         csv_path=gray_level_detct(input_path, 20, 40, 0, 0)
+        print(csv_path)
         base_name =os.path.splitext(os.path.basename(csv_path))[0]
         process_csv_data(csv_path, 240)
 
@@ -125,9 +126,6 @@ else:
 
     input_values = input("Enter low frequency, high frequency, and factor separated by commas (e.g., 4,8,10): ")
     lowFreq, highFreq, factor = map(int, input_values.split(','))
-
-    # 构建输出文件名
-    vidFnameOut = os.path.join('media_mag', os.path.basename(vidFname).replace('.mp4', '-Mag%d_Ideal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)))
     
     current_directory = os.getcwd()
     video_name = os.path.splitext(os.path.basename(vidFname))[0]
@@ -135,17 +133,10 @@ else:
     input_video_directory = os.path.join(media_directory, video_name)
     check_path = os.path.join(input_video_directory, os.path.basename(vidFname).replace('.mp4', '_roi(%d,%d,%d,%d)_Mag%d_Ideal-lo%d-hi%d.avi' % (x, y, w, h, factor, lowFreq, highFreq)))
 
-    # # 检查是否放大过（同样参数）
-    # if os.path.exists(check_path):
-    #     print(f"The file {check_path} exists.")
-    #     mag_vid_path = check_path
-    # else:
-    #     print(f"The file {check_path} does not exist.")   
-        # 开始运动放大
-    mag_vid_path = phaseBasedMagnify(vidFname, vidFnameOut, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h)
-        # 可选：将输出视频转换为MP4格式
-        # print("\nStart convert video to mp4\n")
-        # subprocess.call(['ffmpeg', '-i', mag_vid_path, mag_vid_path.replace('.avi', '.mp4')])
+    mag_vid_path = phaseBasedMagnify(vidFname, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h)
+
+    # print("\nStart convert video to mp4\n")
+    # subprocess.call(['ffmpeg', '-i', mag_vid_path, mag_vid_path.replace('.avi', '.mp4')])
 
     # edge_choice = input("Press '1' to use darkest_point algorithm or '2' to use canny edge_detect algorthm: ").strip().upper()
     # if edge_choice == "1":

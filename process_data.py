@@ -58,7 +58,7 @@ def on_click(event, freqs, amplitudes, ax, fig):
         ax.text(
             marked_point[0],
             marked_point[1],
-            f"({marked_point[0]:.5f}, {marked_point[1]:.2f})",
+            f"({marked_point[0]:.2f}, {marked_point[1]:.2f})",
         )
 
     # 右键点击取消最近的选择
@@ -124,40 +124,35 @@ def process_csv_data(csv_file_path, sampling_rate):
 
 
     # 生成时程图
-    # plt.figure(figsize=(14, 6), dpi=100)
-    plt.figure(figsize=(6, 5), dpi=100)
+    plt.figure(figsize=(14, 6), dpi=100)
+    # plt.figure(figsize=(6, 5), dpi=100)
 
     # plt.xlim(0, max(time_array))
-    plt.xlim(30, 60)
+    # plt.xlim(30, 60)
     # plt.ylim(1030, 1040)
 
-    plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(4))
+    # plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(4))
     # plt.gca().yaxis.set_major_locator(ticker.MultipleLocator(1))
 
     # plt.plot(y_tracks, linewidth=1.5)
     plt.plot(time_array, y_tracks, linewidth=1.5)
     # plt.xlabel("Track Index")
-    plt.xlabel("Time (s)", fontsize=14, labelpad=15)
+    plt.xlabel("Time (s)", labelpad=15)
     # plt.ylabel("Displacement")
-    plt.ylabel("Displacement (Px)", fontsize=14, labelpad=15)
-    plt.ylabel("Voltage (mV)", fontsize=14, labelpad=15)
-
-
-    plt.tick_params(axis='x', labelsize=14)
-    plt.tick_params(axis='y', labelsize=14)
+    plt.ylabel("Displacement (Px)", labelpad=15)
+    plt.ylabel("Voltage (mV)", labelpad=15)
     
-    # plt.title(f"Displacement vs. Track Index")
+    plt.title(f"Displacement")
+
     plt.tight_layout()
     displacement_vs_track_index_filename = os.path.join(
         output_folder, f"{base_name}_displacement_vs_track_index.png"
     )
     plt.savefig(displacement_vs_track_index_filename, dpi=300)
 
-    time_filter = (time_array >= 30) & (time_array <= 60)
-    filtered_y_tracks = np.array(y_tracks)[time_filter]
 
     # 提取振动信息
-    freqs, amplitudes = extract_vibration_info(filtered_y_tracks, sampling_rate)
+    freqs, amplitudes = extract_vibration_info(y_tracks, sampling_rate)
 
     positive_freqs = freqs[: len(freqs) // 2]
     positive_amplitudes = amplitudes[: len(amplitudes) // 2]
@@ -189,7 +184,7 @@ def process_csv_data(csv_file_path, sampling_rate):
         plt.show()
 
         # 重新绘制图像以包含标注的点
-        fig, ax = plt.subplots(figsize=(6, 5), dpi=100)
+        fig, ax = plt.subplots(figsize=(14, 6), dpi=100)
         ax.plot(positive_freqs, positive_amplitudes, linewidth=1.5)
         for point in marked_points:
             ax.plot(point[0], point[1], "ro")
@@ -197,9 +192,6 @@ def process_csv_data(csv_file_path, sampling_rate):
 
         ax.set_xlabel("Frequency (Hz)", fontsize=14, labelpad=15)
         ax.set_ylabel("Amplitude", fontsize=14, labelpad=15)
-
-        ax.tick_params(axis='x', labelsize=14, which='both')
-        ax.tick_params(axis='y', labelsize=14, which='both')
 
         # ax.set_title("Vibration Spectrum with Marked Peaks")
         plt.tight_layout()

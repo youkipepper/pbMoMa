@@ -48,7 +48,7 @@ def select_roi_mode(vidReader, width, height):
 # 基于相位的视频放大函数
 def phaseBasedMagnify(
     vidFname,
-    vidFnameOut,
+    # vidFnameOut,
     maxFrames,
     windowSize,
     factor,
@@ -99,27 +99,47 @@ def phaseBasedMagnify(
 
     print(f"ROI Top-Left Corner: ({x}, {y}), ROI Size: {w}x{h}")
 
-    # 获取原视频的文件名（不包括扩展名）
-    base_name = os.path.splitext(os.path.basename(vidFname))[0]
+    # # 获取原视频的文件名（不包括扩展名）
+    # base_name = os.path.splitext(os.path.basename(vidFname))[0]
 
-    # 构建输出目录路径（在media_mag文件夹中，以原视频文件名命名的子文件夹）
-    output_dir = os.path.join(
-        os.path.dirname(os.path.dirname(vidFname)), "media_mag", base_name
-    )
+    # # 构建输出目录路径（在media_mag文件夹中，以原视频文件名命名的子文件夹）
+    # output_dir = os.path.join(
+    #     os.path.dirname(os.path.dirname(vidFname)), "media_mag", base_name
+    # )
 
-    # 创建输出目录（如果不存在）
-    os.makedirs(output_dir, exist_ok=True)
+    # # 创建输出目录（如果不存在）
+    # os.makedirs(output_dir, exist_ok=True)
 
-    # 构建输出视频的新路径（包含ROI信息）
+    # # 构建输出视频的新路径（包含ROI信息）
+    # output_vid_path = os.path.join(
+    #     output_dir,
+    #     f"{base_name}_roi({x},{y},{w},{h})_Mag{factor}_lo{lowFreq}_hi{highFreq}.avi",
+    # )
+
+    # 视频文件的目录和上级目录
+    video_dir = os.path.dirname(vidFname)
+    grandparent_dir = os.path.dirname(os.path.dirname(video_dir))
+
+    # 检查视频是否已在media_attached文件夹中
+    if os.path.basename(video_dir) == "media_attached":
+        output_dir = video_dir
+    else:
+        # 不在media_attached中，使用上上级目录的media_attached文件夹
+        output_dir = os.path.join(grandparent_dir, "media_attached")
+        # 如果目录不存在，则创建它
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+    # 构建输出视频的文件路径
     output_vid_path = os.path.join(
         output_dir,
-        f"{base_name}_roi({x},{y},{w},{h})_Mag{factor}_Ideal-lo{lowFreq}-hi{highFreq}.avi",
+        f"{os.path.splitext(os.path.basename(vidFname))[0]}_roi({x},{y},{w},{h})_Mag{factor}_lo{lowFreq}_hi{highFreq}.avi"
     )
 
     # 视频写入器设置
     fourcc = cv2.VideoWriter_fourcc(*fourcc_chars)
     vidWriter = cv2.VideoWriter(output_vid_path, fourcc, int(fps), (width, height), 1)
-    print("Writing:", vidFnameOut)
+    print("Writing:", output_vid_path)
 
     # 处理的帧数
     nrFrames = min(vidFrames, maxFrames)
@@ -228,7 +248,7 @@ def phaseBasedMagnify(
 # 主脚本部分
 if __name__ == "__main__":
     # 设置视频源、输出文件名、最大帧数等参数
-    vidFname = "/Users/youkipepper/Desktop/pbMoMa/media/2023-11-30/video_231130_02.mp4"
+    vidFname = "/Users/youkipepper/Desktop/pbMoMa/media/nanjing/20211202_04.mp4"
     vidReader = cv2.VideoCapture(vidFname)
     width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -238,7 +258,7 @@ if __name__ == "__main__":
 
     maxFrames = 60000
     windowSize = 30
-    factor = 5
+    factor = 20
     fpsForBandPass = 600
     lowFreq = 4
     highFreq = 15
@@ -255,7 +275,6 @@ if __name__ == "__main__":
     # 可选：将输出视频转换为MP4格式
     output_vid_path = phaseBasedMagnify(
         vidFname,
-        vidFnameOut,
         maxFrames,
         windowSize,
         factor,

@@ -10,7 +10,7 @@ import matplotlib.ticker as ticker
 
 marked_points = []
 save_roi_video = True
-save_csv = None
+save_csv = True
 
 
 def apply_noise(img, noise_type):
@@ -134,11 +134,32 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
     fourcc_chars = "".join([chr((fourcc_code >> 8 * i) & 0xFF) for i in range(4)])
     fourcc = cv2.VideoWriter_fourcc(*fourcc_chars)
 
+    # video_dir = os.path.dirname(video_path)
+    # out_path = os.path.join(
+    #     video_dir,
+    #     f"{video_filename}_{edge_choice}_edge_roi({x},{y},{w},{h}).mp4",
+    # )
+
     video_dir = os.path.dirname(video_path)
+    grandparent_dir = os.path.dirname(os.path.dirname(video_dir))
+
+    # 检查视频是否已在media_attached文件夹中
+    if os.path.basename(video_dir) == "media_attached":
+        out_dir = video_dir
+    else:
+        # 不在media_attached中，使用上上级目录的media_attached文件夹
+        out_dir = os.path.join(grandparent_dir, "media_attached")
+        # 如果目录不存在，则创建它
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+
+    # 构建输出视频的文件路径
     out_path = os.path.join(
-        video_dir,
-        f"{video_filename}_{edge_choice}_edge_points_roi({x},{y},{w},{h}).mp4",
+        out_dir,
+        f"{video_filename}_{edge_choice}_edge_roi({x},{y},{w},{h}).mp4",
     )
+
+
     out = cv2.VideoWriter(
         out_path,
         fourcc,
@@ -174,6 +195,8 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
 
     try:
         frame_count = 0  # 用于计算帧数的变量
+        accumulated_data = [(np.array([]), np.array([])) for _ in range(frame_width)]
+        previous_frame_data = None
 
         while True:
             ret, frame = cap.read()
@@ -203,19 +226,20 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
                 # 使用最暗点边缘检测算法
                 edge_points = darkest_edge_detection(
                     roi_frame, fit_type="gauss", degree=6
-                )
+                )   
+
             elif edge_choice == "canny" or edge_choice == "canny_amplified":
                 # use canny
                 edge_image = cv2.Canny(roi_frame, 50, 150)
                 y_coords, x_coords = np.where(edge_image == 255)
                 edge_points = list(zip(x_coords, y_coords))
             
-            # 处理ROI中心列的最大边缘点
-            for point in edge_points:
-                # 将每个点转换成ROI内的坐标
-                roi_point = (int(point[0] + x), int(point[1] + y))
-                # 在视频帧上用浅蓝色线条画出边缘点
-                cv2.circle(frame, roi_point, 1, (255, 0, 0), -1)
+            # # 处理ROI中心列的最大边缘点
+            # for point in edge_points:
+            #     # 将每个点转换成ROI内的坐标
+            #     roi_point = (int(point[0] + x), int(point[1] + y))
+            #     # 在视频帧上用浅蓝色线条画出边缘点
+            #     cv2.circle(frame, roi_point, 1, (255, 0, 0), -1)
 
             center_col = w // 2
             center_point = None
@@ -302,11 +326,12 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
 
     if save_csv == True:
         # 视频处理循环结束后，将y_tracks写入CSV文件
-        csv_output_folder = os.path.join("csv", f"{video_filename}_{edge_choice}")
+        # csv_output_folder = os.path.join("csv", f"{video_filename}_{edge_choice}")
+        csv_output_folder = 'csv'
         os.makedirs(csv_output_folder, exist_ok=True)
         csv_filename = os.path.join(
             csv_output_folder,
-            f"{video_filename}_{edge_choice}_roi({x},{y},{w},{h})_y_tracks_center.csv",
+            f"{video_filename}_{edge_choice}_roi({x},{y},{w},{h}).csv",
         )
         # print(f'y = {y} , int(y) = {int(y)}')
 
@@ -327,15 +352,10 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
     # 增加图像大小和曲线点数
     plt.figure(figsize=(14, 6), dpi=100)
     plt.xlim(0, max(time_array))
-    plt.gca().xaxis.set_major_locator(ticker.MultipleLocator(1))
-    plt.gca().yaxis.set_major_locator(ticker.MultipleLocator(1))
     plt.plot(time_array, y_tracks, linewidth=1.5)
-    plt.xlabel("Time (s)", labelpad=15)
-    plt.ylabel("Displacement (Px)", labelpad=15)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Displacement (Px)")
     plt.title(f"Displacement vs. Track Index ({edge_choice}) (x={x + w // 2})")
-
-    plt.tick_params(axis='x', labelsize=14)
-    plt.tick_params(axis='y', labelsize=14)
 
     plt.tight_layout()  # 自动调整布局以适应图像大小
 
@@ -401,8 +421,8 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
         output_folder,
         f"{video_filename}_{edge_choice}_roi({x},{y},{w},{h})_vibration_spectrum.png",
     )
-    plt.savefig(vibration_spectrum_filename, dpi=300)
-    print(f"vibration_spectrum png saved at: {vibration_spectrum_filename}")
+    # plt.savefig(vibration_spectrum_filename, dpi=300)
+    # print(f"vibration_spectrum png saved at: {vibration_spectrum_filename}")
 
     mark_choice = input("Do u wanna mark the point? (y/n)")
     if mark_choice == "y":
