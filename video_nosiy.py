@@ -1,3 +1,5 @@
+# notation func：视频加噪声
+
 import numpy as np
 import cv2
 import sys

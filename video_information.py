@@ -1,3 +1,5 @@
+# notation func：视频信息
+
 import cv2
 
 video_path = input("Enter the path of the video file: ")

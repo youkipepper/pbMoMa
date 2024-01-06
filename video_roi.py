@@ -1,3 +1,5 @@
+# notation 视频按roi位置信息剪裁
+
 import cv2
 import sys
 from progress_bar import print_progress_bar

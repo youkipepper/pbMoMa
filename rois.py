@@ -1,3 +1,5 @@
+# notation 获取视频中多个roi位置信息
+
 import cv2
 
 def select_rois(video_path):

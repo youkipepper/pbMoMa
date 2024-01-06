@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# notation func：可操控金字塔
+
 """
 Created on Mon Dec 21 18:19:12 2015
 

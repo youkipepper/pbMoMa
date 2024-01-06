@@ -246,6 +246,19 @@ def gray_level_detct(video_path, width, height, alpha , n):
         # 使用用户选定的点
         p_x, p_y = point
 
+    elif choice == 'I':
+        # 用户手动输入ROI信息
+        try:
+            # x, y = map(int, input("输入ROI左上角坐标（格式：x y）: ").split())
+            # width, height = map(int, input("输入ROI宽度和高度（格式：width height）: ").split())
+            roi_input = input("输入ROI的坐标和尺寸（格式：x,y,width,height）: ")
+            x, y, width, height = map(int, roi_input.split(','))
+            p_x = x + width // 2
+            p_y = y + height // 2
+        except ValueError:
+            print("输入格式错误")
+            return
+
     else:
         print("无效选择")
         return

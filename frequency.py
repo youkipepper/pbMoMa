@@ -7,9 +7,11 @@ from scipy.signal import find_peaks
 from darkest_edge import darkest_edge_detection
 from progress_bar import print_progress_bar
 import matplotlib.ticker as ticker
+from gray_scale import generate_gray_scale_histogram, darkest_gray
 
 marked_points = []
-save_roi_video = True
+
+# notation 是否保存csv数据
 save_csv = True
 
 
@@ -134,12 +136,6 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
     fourcc_chars = "".join([chr((fourcc_code >> 8 * i) & 0xFF) for i in range(4)])
     fourcc = cv2.VideoWriter_fourcc(*fourcc_chars)
 
-    # video_dir = os.path.dirname(video_path)
-    # out_path = os.path.join(
-    #     video_dir,
-    #     f"{video_filename}_{edge_choice}_edge_roi({x},{y},{w},{h}).mp4",
-    # )
-
     video_dir = os.path.dirname(video_path)
     grandparent_dir = os.path.dirname(os.path.dirname(video_dir))
 
@@ -180,6 +176,25 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
     roi_center_x, roi_center_y = x + w // 2, y + h // 2
     print(f"ROI Center Coordinates: ({roi_center_x}, {roi_center_y})")
 
+    # 创建或检查media_attached文件夹
+    media_attached_dir = os.path.join(os.getcwd(), "media_attached")
+    if not os.path.exists(media_attached_dir):
+        os.makedirs(media_attached_dir)
+
+    # 构建灰度直方图视频的输出路径
+    hist_video_path = os.path.join(
+        media_attached_dir,
+        f"{video_filename}_{edge_choice}_histogram_video.mp4",
+    )
+
+    # 创建灰度直方图视频输出
+    hist_out = cv2.VideoWriter(
+        hist_video_path,
+        fourcc,
+        frame_rate,
+        (600, 400)
+    )    
+
     # 初始化追踪点（固定x坐标，选择的y坐标）
     point_of_interest = np.array([[x + w // 2, y + h // 2]], dtype=np.float32)
     p0 = point_of_interest
@@ -193,10 +208,10 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
     font_thickness = 2
     line_spacing = 20
 
+    color_frame = None
+
     try:
         frame_count = 0  # 用于计算帧数的变量
-        accumulated_data = [(np.array([]), np.array([])) for _ in range(frame_width)]
-        previous_frame_data = None
 
         while True:
             ret, frame = cap.read()
@@ -205,7 +220,7 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
 
             # 打印帧数信息
             frame_count += 1
-            # print(f"Processing Frame {frame_count} / {total_frames}")
+
             print_progress_bar(
                 frame_count,
                 total_frames,
@@ -222,21 +237,41 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
             # roi_frame = gray_frame[y:y+h, x:x+w]
             edge_points = []  # 初始化 edge_points 变量
 
+            # notation 边缘提取算法
             if edge_choice == "darkest" or edge_choice == "darkest_amplified":
                 # 使用最暗点边缘检测算法
                 edge_points = darkest_edge_detection(
                     roi_frame, fit_type="gauss", degree=6
-                )   
-
+                )                 
+                
             elif edge_choice == "canny" or edge_choice == "canny_amplified":
-                # use canny
+                # 使用 Canny 算法
                 edge_image = cv2.Canny(roi_frame, 50, 150)
-                y_coords, x_coords = np.where(edge_image == 255)
-                edge_points = list(zip(x_coords, y_coords))
+                edge_row_indices, edge_col_indices = np.where(edge_image == 255)
+                edge_points = list(zip(edge_col_indices, edge_row_indices))
+
+                # 存储每个边缘列的最大边缘行
+                max_row_at_edge_col = {}
+                for edge_col, edge_row in edge_points:
+                    if edge_col not in max_row_at_edge_col or edge_row > max_row_at_edge_col[edge_col]:
+                        max_row_at_edge_col[edge_col] = edge_row
+
+                # 更新 edge_points 以包含每个边缘列的最大边缘行的点
+                edge_points = [(edge_col, max_row) for edge_col, max_row in max_row_at_edge_col.items()]
+
+            elif edge_choice == "gray" or edge_choice == "gray_amplified":
+                edge_points, color_frame, hist_image =  generate_gray_scale_histogram(roi_frame, "1")
+                frame[y:y+h, x:x+w] = color_frame
+                # hist_out.write(hist_image)
+
+
+            elif edge_choice == "dark_gray" or edge_choice == "dark_gray_amplified":
+                edge_points, color_frame = darkest_gray(roi_frame)
+                frame[y:y+h, x:x+w] = color_frame
             
-            # # 处理ROI中心列的最大边缘点
+
+            # notation 边缘线标注
             # for point in edge_points:
-            #     # 将每个点转换成ROI内的坐标
             #     roi_point = (int(point[0] + x), int(point[1] + y))
             #     # 在视频帧上用浅蓝色线条画出边缘点
             #     cv2.circle(frame, roi_point, 1, (255, 0, 0), -1)
@@ -248,12 +283,12 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
                     y_tracks.append(y_val + y)  # 加上ROI的y坐标偏移
                     center_point = (x + w // 2, int(y_val) + y)  # 用于显示的整数坐标
                     break
-
-            # 在预览窗口中显示带有中心边缘点的视频
+            
+            # 在预览窗口中显示带有中心边缘点的视频 # notation 显示中心边缘点
             if center_point is not None:
-                cv2.circle(frame, center_point, 4, (0, 0, 255), -1)
+                cv2.circle(frame, center_point, 3, (0, 0, 255), -1)
 
-            # out.write(frame)  # 将带有中心边缘点的帧写入新视频
+            # out.write(frame)  # notation 只保存边缘点视频
 
             # 在视频帧上用绿色方框画出ROI区域
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -290,7 +325,7 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
             # 绘制y_track值
             if y_tracks:  # 确保y_tracks不为空
                 # y_track_text = f"y_track: {y_tracks[-1]:.5f}"  # 显示最新的y_track值
-                y_track_text = f"y_track: {y_tracks[-1]}"  # 显示最新的y_track值
+                y_track_text = f"y_track: {y_tracks[-1]:.3f}"  # 显示最新的y_track值
 
                 # 为文本指定位置，放在ROI的右上外部
                 text_position_x = x + w + text_offset_x
@@ -305,9 +340,9 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
                     font_thickness,
                 )
 
-            out.write(frame)
+            out.write(frame) # notation 保存roi信息视频
 
-            # show the video frames
+            # show the video frames # notation 显示预览视频
             cv2.imshow("Edge Points", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
@@ -318,9 +353,10 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
     finally:
         # 关闭视频文件
         cap.release()
+        hist_out.release()
         cv2.destroyAllWindows()
 
-    # 在完成数据收集后打印y_tracks
+    # 在完成数据收集后打印y_tracks 
     # print("Collected Y Tracks:")
     # print(y_tracks)
 
@@ -529,7 +565,7 @@ if __name__ == "__main__":
             except ValueError:
                 print("Invalid input. Please enter valid integers.")
 
-    frequency(video_path, x, y, w, h, "darkest")
+    frequency(video_path, x, y, w, h, "gray")
     # selected_frequencies = frequency(video_path, x, y, w, h, 1)
     # first_frequency = selected_frequencies[0]
     # print("Selected Frequencies:", selected_frequencies, "Hz")

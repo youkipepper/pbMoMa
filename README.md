@@ -12,5 +12,5 @@ pip env:
 special env:
     !cp ./filterbank.py */envs/py3x/lib/python3.10/site-packages/perceptual/filterbank.py
 
-notation:
+note:
     时间_片名_分辨率_编码_格式_版本

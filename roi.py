@@ -1,3 +1,5 @@
+# notation 获取视频中单个roi位置信息
+
 import cv2
 
 video_path = input("Enter the path of the video file: ")
@@ -18,4 +20,4 @@ while True:
         x, y, w, h = map(int, roi)
         break
 
-print(x, y, w, h)
+print(f"{x},{y},{w},{h}")

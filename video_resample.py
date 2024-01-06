@@ -1,3 +1,5 @@
+# notation func：视频重采样
+
 from moviepy.editor import VideoFileClip
 import os
 import sys

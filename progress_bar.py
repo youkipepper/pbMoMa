@@ -1,3 +1,5 @@
+# notation func：进度条
+
 def print_progress_bar(iteration, total, prefix='', suffix='', length=50, fill='█'):
     """
     打印进度条和百分比

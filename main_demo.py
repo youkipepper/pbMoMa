@@ -61,73 +61,45 @@ def process_file(file_path, file_type):
         execute_process(preset_inputs_csv)        
     
     else:
-        preset_inputs = [
-            file_path,  # 输入视频路径
-            'n',  # 旋转视频
-            'n',  # 灰度检测
-            'E',  # 输入roi信息
-            '629,385', # roi脚点
-            '40,137', # roi尺寸
-            'y', # 提取放大前
-            'n', # darkest mark
-            'n', # canny mark 
-            '5,13,10', # 放大参数
-            'n', # darkest mark
-        ]
-        execute_process(preset_inputs)
+        # preset_inputs = [
+        #     file_path,  # 输入视频路径
+        #     'n',  # 旋转视频
+        #     'n',  # 灰度检测
+        #     'E',  # 输入roi信息
+        #     '2859,739', # roi脚点
+        #     '50,112', # roi尺寸
+        #     'n', # 提取放大前
+        #     # 'n', # darkest mark
+        #     # 'n', # canny mark 
+        #     '7,8,10', # 放大参数
+        #     'n', # darkest mark
+        # ]
+        # execute_process(preset_inputs)
 
-        preset_inputs = [
-            file_path,  # 输入视频路径
-            'n',  # 旋转视频
-            'n',  # 灰度检测
-            'E',  # 输入roi信息
-            '629,385', # roi脚点
-            '40,137', # roi尺寸
-            'n', # 提取放大前
-            # 'n', # darkest mark
-            # 'n', # canny mark 
-            '5,13,15', # 放大参数
-            'n', # darkest mark
-        ]
-        execute_process(preset_inputs)
+        # 初始ROI坐标
+        roi_x, roi_y = 1200, 947
 
-        preset_inputs = [
-            file_path,  # 输入视频路径
-            'n',  # 旋转视频
-            'n',  # 灰度检测
-            'E',  # 输入roi信息
-            '629,385', # roi脚点
-            '40,137', # roi尺寸
-            'n', # 提取放大前
-            # 'n', # darkest mark
-            # 'n', # canny mark 
-            '13,22,10', # 放大参数
-            'n', # darkest mark
-        ]
-        execute_process(preset_inputs)
+        # 对于视频文件，执行39次处理
+        for _ in range(39):
+            preset_inputs_video = [
+                file_path,
+                'E',
+                f'{roi_x},947', # 更新的ROI坐标
+                '2,120',
+                'n'
+            ]
+            execute_process(preset_inputs_video)
 
-        preset_inputs = [
-            file_path,  # 输入视频路径
-            'n',  # 旋转视频
-            'n',  # 灰度检测
-            'E',  # 输入roi信息
-            '629,385', # roi脚点
-            '40,137', # roi尺寸
-            'n', # 提取放大前
-            # 'n', # darkest mark
-            # 'n', # canny mark 
-            '13,22,15', # 放大参数
-            'n', # darkest mark
-        ]
-        execute_process(preset_inputs)
-        
+            # 每次循环后增加2
+            roi_x += 1
+
            
 
 def execute_process(preset_inputs):
 
     # print("Executing process with:", preset_inputs)  # 调试打印
 
-    process = subprocess.Popen(['python', 'main.py'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(['python', 'frequency.py'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     for user_input in preset_inputs:
         process.stdin.write(user_input + '\n')
     process.stdin.close()

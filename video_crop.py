@@ -1,3 +1,5 @@
+# notation func：视频剪辑
+
 import cv2
 import os
 from video_rotate import rotate_video, select_two_points, calculate_rotation_angle

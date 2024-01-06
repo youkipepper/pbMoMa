@@ -16,7 +16,7 @@ input_path = input("Enter the path of the file: ")
 if input_path.endswith('.xls'):
     csv_file_path = xls2csv(input_path)
     base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
-    process_csv_data(csv_file_path, 50)
+    process_csv_data(csv_file_path, 100)
 
 # if the file is csv
 elif input_path.endswith('.csv'):
@@ -34,13 +34,6 @@ else:
         if points:
             angle = calculate_rotation_angle(points)
             input_path = rotate_video(input_path, angle)  # 更新input_path为旋转后的视频路径
-
-    gray_detct_choice = input("Do you wana use gray_level_detct.py? (y/n): ").strip().lower()
-    if gray_detct_choice == 'y':
-        csv_path=gray_level_detct(input_path, 20, 40, 0, 0)
-        print(csv_path)
-        base_name =os.path.splitext(os.path.basename(csv_path))[0]
-        process_csv_data(csv_path, 240)
 
     # 读取视频文件
     cap = cv2.VideoCapture(input_path)
@@ -100,8 +93,10 @@ else:
         # print("Selected Frequencies:", frequencies, "Hz")
         # print("First_frequency = ", first_frequency)
 
-        frequencies_darkest = frequency(input_path, x, y, w, h, 'darkest')
-        frequencies_canny = frequency(input_path, x, y, w, h, 'canny')
+        # frequencies_darkest = frequency(input_path, x, y, w, h, 'darkest') # notation 放大前 darkest
+        # frequencies_canny = frequency(input_path, x, y, w, h, 'canny') # notation 放大前 canny
+        # frequencies_gray = frequency(input_path, x, y, w, h, 'gray') # notation 放大前 gray
+        frequencies_dark_gray = frequency(input_path, x, y, w, h, 'dark_gray') # notation 放大前 dark_gray
 
         # print("Selected Frequencies(darkest):", frequencies_darkest, "Hz")
         # print("Selected Frequencies(canny):", frequencies_canny, "Hz")
@@ -144,5 +139,7 @@ else:
     # elif edge_choice == "2":
     #     frequencies = frequency(mag_vid_path, x, y, w, h, 'canny after amplified')
 
-    frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest_amplified')
-    frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified')
+    # frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest_amplified') # notation 放大后 darkest
+    # frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified') #notation 放大后 canny
+    # frequencies = frequency(mag_vid_path, x, y, w, h, 'gray') #notation 放大后 gray
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'gray_amplified') #notation 放大后 dark_gray
