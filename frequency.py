@@ -11,10 +11,6 @@ from gray_scale import generate_gray_scale_histogram, darkest_gray
 
 marked_points = []
 
-# notation 是否保存csv数据
-save_csv = True
-
-
 def apply_noise(img, noise_type):
     if noise_type == "gaussian":
         mean = 0
@@ -119,7 +115,7 @@ def on_click(event, freqs, amplitudes, ax, fig):
     fig.canvas.draw()
 
 
-def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
+def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = False):
     video_filename = os.path.splitext(os.path.basename(video_path))[0]  # 提取视频文件名
     cap = cv2.VideoCapture(video_path)
 
@@ -340,7 +336,7 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None):
                     font_thickness,
                 )
 
-            out.write(frame) # notation 保存roi信息视频
+            # out.write(frame) # notation 保存roi信息视频
 
             # show the video frames # notation 显示预览视频
             cv2.imshow("Edge Points", frame)
@@ -565,7 +561,7 @@ if __name__ == "__main__":
             except ValueError:
                 print("Invalid input. Please enter valid integers.")
 
-    frequency(video_path, x, y, w, h, "gray")
+    frequency(video_path, x, y, w, h, "gray") # notation 修改调试函数
     # selected_frequencies = frequency(video_path, x, y, w, h, 1)
     # first_frequency = selected_frequencies[0]
     # print("Selected Frequencies:", selected_frequencies, "Hz")

@@ -128,7 +128,7 @@ def generate_gray_scale_histogram(image, peak_choice="2"):
     color_image[mask] = [0, 255, 0]  # 将符合条件的像素点设为红色（BGR格式） 
     
     fill_small_non_mark_areas(color_image, 5)
-    # process_image_areas(color_image, 30, mark_color=[0, 255, 0], fill_color=[255, 255, 255])
+    process_image_areas(color_image, 30, mark_color=[0, 255, 0], fill_color=[255, 255, 255])
 
     # 统计红色像素点的数量
     pixel_mask = (color_image == [0, 255, 0]).all(axis=2)

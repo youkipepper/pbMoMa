@@ -2,8 +2,8 @@ from perceptual.filterbank import *
 import cv2
 import sys
 import numpy as np
-from pyr2arr import Pyramid2arr
-from temporal_filters import IdealFilterWindowed, ButterBandpassFilter
+from pyr2arr import Pyramid2arr # 可操控金字塔
+from temporal_filters import IdealFilterWindowed, ButterBandpassFilter # 理想滤波器
 import subprocess
 import os
 
@@ -60,7 +60,7 @@ def phaseBasedMagnify(
     w,
     h,
 ):
-    # 初始化可导向复数金字塔
+    # 初始化可导向复值金字塔
     steer = Steerable(5)
     pyArr = Pyramid2arr(steer)
 
@@ -260,9 +260,10 @@ if __name__ == "__main__":
     windowSize = 30
     factor = 20
     fpsForBandPass = 600
+
+    # notation 修改时域滤波器
     lowFreq = 4
     highFreq = 15
-    # vidFnameOut = vidFname + '-Mag%dIdeal-lo%d-hi%d.avi' % (factor, lowFreq, highFreq)
 
     # 构建输出文件名
     vidFnameOut = os.path.join(
