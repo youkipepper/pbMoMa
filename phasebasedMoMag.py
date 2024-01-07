@@ -2,8 +2,8 @@ from perceptual.filterbank import *
 import cv2
 import sys
 import numpy as np
-from pyr2arr import Pyramid2arr # 可操控金字塔
-from temporal_filters import IdealFilterWindowed, ButterBandpassFilter # 理想滤波器
+from pyr2arr import Pyramid2arr  # 可操控金字塔
+from temporal_filters import IdealFilterWindowed, ButterBandpassFilter  # 理想滤波器
 import subprocess
 import os
 
@@ -133,7 +133,7 @@ def phaseBasedMagnify(
     # 构建输出视频的文件路径
     output_vid_path = os.path.join(
         output_dir,
-        f"{os.path.splitext(os.path.basename(vidFname))[0]}_roi({x},{y},{w},{h})_Mag{factor}_lo{lowFreq}_hi{highFreq}.avi"
+        f"{os.path.splitext(os.path.basename(vidFname))[0]}_roi({x},{y},{w},{h})_Mag{factor}_lo{lowFreq}_hi{highFreq}.avi",
     )
 
     # 视频写入器设置
