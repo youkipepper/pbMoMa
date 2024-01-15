@@ -16,7 +16,7 @@ def xls2csv(xls_file_path):
     new_data = pd.DataFrame(data)
 
     # 定义 CSV 文件保存路径
-    csv_output_folder = '/Users/youkipepper/Desktop/pbMoMa/csv'
+    csv_output_folder = 'csv'
     os.makedirs(csv_output_folder, exist_ok=True)  # 如果文件夹不存在，则创建
     csv_file_name = os.path.basename(xls_file_path).replace('.xls', '.csv')
     csv_file_path = os.path.join(csv_output_folder, csv_file_name)

@@ -6,7 +6,7 @@ from PIL import Image
 import io
 
 
-def find_peaks(histogram, num_peaks=2):
+def find_peaks(histogram, num_peaks=2, max_range= 80):
     """
     在直方图中查找前 num_peaks 个最大峰值。
     返回一个包含峰值位置的列表。
@@ -16,7 +16,6 @@ def find_peaks(histogram, num_peaks=2):
         peak = np.argmax(histogram)
         peaks.append(peak)
         # 将当前峰值附近的值设为零，以查找下一个峰值
-        max_range = 80  # 可调整范围以避免紧邻的峰值
         start = max(0, peak - max_range)
         end = min(len(histogram), peak + max_range)
         for i in range(start, end):
@@ -51,40 +50,121 @@ def fill_small_non_mark_areas(color_image, n):
             color_image[start:height, col] = color
 
 
-def process_image_areas(color_image, threshold, mark_color=[0, 0, 255], fill_color=[255, 255, 255]):
-    # 获取图像的高度和宽度
+# def process_image_areas(color_image, threshold, mark_color=[0, 255, 0], fill_color=[255, 255, 255]):
+#     # 获取图像的高度和宽度
+#     height, width = color_image.shape[:2]
+
+#     for col in range(width):
+#         start = None  # 区间的开始
+#         is_marked = False  # 标记区间是否是标记颜色
+
+#         for row in range(height):
+#             # 检查像素是否为标记颜色
+#             if np.array_equal(color_image[row, col], mark_color):
+#                 if start is None:
+#                     start = row
+#                     is_marked = True
+#             else:
+#                 if start is None:
+#                     start = row
+#                     is_marked = False
+#                 elif is_marked:
+#                     # 检查标记颜色区间的长度
+#                     if row - start < threshold:
+#                         # 将小于阈值的标记颜色区间去掉
+#                         color_image[start:row, col] = fill_color
+#                     start = None
+
+#         # 检查并处理最后一个区间（如果需要）
+#         if start is not None and is_marked and height - start < threshold:
+#             color_image[start:height, col] = fill_color
+
+#     return color_image
+            
+# def process_image_areas(color_image, threshold, mark_color=[0, 0, 255], fill_color=[255, 255, 255]):
+#     height, width = color_image.shape[:2]
+
+#     for col in range(width):
+#         start = None
+#         mark_count = 0  # 用于记录满足条件的mark_color区间数量
+
+#         for row in range(height):
+#             # 如果当前像素是mark_color
+#             if np.array_equal(color_image[row, col], mark_color):
+#                 if start is None:  # 区间的开始
+#                     start = row
+#             else:
+#                 if start is not None:  # 区间的结束
+#                     # 检查mark_color区间的长度
+#                     if row - start >= threshold:
+#                         mark_count += 1
+#                         # 仅保留第二个符合条件的区间
+#                         if mark_count != 2:
+#                             color_image[start:row, col] = fill_color
+#                     else:
+#                         # 如果区间长度小于阈值，则用fill_color填充
+#                         color_image[start:row, col] = fill_color
+#                     start = None
+
+#         # 处理最后一个区间（如果需要）
+#         if start is not None:
+#             if height - start < threshold or mark_count != 1:
+#                 color_image[start:height, col] = fill_color
+
+#     return color_image
+            
+
+def process_image_areas(color_image, threshold, n=-1, mark_color=[0, 0, 255], fill_color=[255, 255, 255]):
     height, width = color_image.shape[:2]
 
     for col in range(width):
-        start = None  # 区间的开始
-        is_marked = False  # 标记区间是否是标记颜色
+        start = None
+        mark_count = 0
+        last_valid_start = None
+        last_valid_end = None
 
         for row in range(height):
-            # 检查像素是否为标记颜色
             if np.array_equal(color_image[row, col], mark_color):
                 if start is None:
-                    start = row
-                    is_marked = True
+                    start = row  # 区间开始
             else:
-                if start is None:
-                    start = row
-                    is_marked = False
-                elif is_marked:
-                    # 检查标记颜色区间的长度
-                    if row - start < threshold:
-                        # 将小于阈值的标记颜色区间去掉
+                if start is not None:  # 区间结束
+                    if row - start >= threshold:
+                        mark_count += 1
+                        if n == -1:
+                            last_valid_start = start  # 更新最后一个有效区间的开始位置
+                            last_valid_end = row  # 更新最后一个有效区间的结束位置
+                        elif mark_count != n:
+                            color_image[start:row, col] = fill_color  # 用fill_color填充
+                    else:
                         color_image[start:row, col] = fill_color
                     start = None
 
-        # 检查并处理最后一个区间（如果需要）
-        if start is not None and is_marked and height - start < threshold:
-            color_image[start:height, col] = fill_color
+        # 处理列的最后一个区间
+        if start is not None:
+            if height - start >= threshold:
+                mark_count += 1
+                if n == -1:
+                    last_valid_start = start
+                    last_valid_end = height
+                elif mark_count != n:
+                    color_image[start:height, col] = fill_color
+            else:
+                color_image[start:height, col] = fill_color
+
+        # 如果n为-1，处理最后一个有效区间
+        if n == -1:
+            # 先将整列用fill_color填充
+            color_image[:, col] = fill_color
+            # 保留最后一个有效区间
+            if last_valid_start is not None and last_valid_end is not None:
+                color_image[last_valid_start:last_valid_end, col] = mark_color
 
     return color_image
 
 
 
-def generate_gray_scale_histogram(image, peak_choice="2"):
+def generate_gray_scale_histogram(image, peak_choice="2", keep_area = -1, fill_bug = 0, peak_range= 100):
     # 读取图像并转换为灰度图像
     # image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if image is None:
@@ -96,8 +176,8 @@ def generate_gray_scale_histogram(image, peak_choice="2"):
     histogram = cv2.calcHist([image], [0], None, [256], [0, 256])
 
     # 查找直方图中的最大峰值和第二大峰值
-    peaks = find_peaks(histogram.copy(), num_peaks=2)
-    # print(f"gray_level_1: {peaks[0]}, gray_level_2: {peaks[1]}")
+    peaks = find_peaks(histogram.copy(), num_peaks=2, max_range= peak_range)
+    print(f"max_range: {peak_range}, gray_level_1: {peaks[0]}, gray_level_2: {peaks[1]}, threshold: {(peaks[0]+peaks[1])//2}")
 
     # # 计算极值点的中点
     # x_centre = int((peaks[0] + peaks[1]) / 2)
@@ -116,19 +196,22 @@ def generate_gray_scale_histogram(image, peak_choice="2"):
         lower_bound = 0
         upper_bound = peak +(peak_max-peak_min)//2
     elif peak_choice == "2":
-        peak = max(peaks[0], peaks[1])
+        peak = peak_max
         lower_bound = peak -(peak_max-peak_min)//2
         upper_bound = 255
     else:
         peak = peaks[0]
         lower_bound = max(0, peak - 50)
         upper_bound = min(255, peak + 50)
-    print(lower_bound, upper_bound)
+    # print(lower_bound, upper_bound)
     mask = (image >= lower_bound) & (image <= upper_bound)
     color_image[mask] = [0, 255, 0]  # 将符合条件的像素点设为红色（BGR格式） 
     
-    fill_small_non_mark_areas(color_image, 5)
-    process_image_areas(color_image, 30, mark_color=[0, 255, 0], fill_color=[255, 255, 255])
+    if fill_bug != 0:
+        fill_small_non_mark_areas(color_image, fill_bug)
+
+    if keep_area != 0:
+        process_image_areas(color_image, 10, keep_area, mark_color=[0, 255, 0], fill_color=[255, 255, 255])
 
     # 统计红色像素点的数量
     pixel_mask = (color_image == [0, 255, 0]).all(axis=2)
@@ -173,8 +256,11 @@ def generate_gray_scale_histogram(image, peak_choice="2"):
 
     y_value = image.shape[0] - ratio
 
-    # return ratio
-    return [(image_width_half, y_value)], color_image, hist_image
+    if keep_area == -1:
+        return [(image_width_half, y_value)], color_image, hist_image
+    else:
+        return [(image_width_half, ratio)], color_image, hist_image
+
 
 def darkest_gray(image):
     color_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
@@ -192,9 +278,17 @@ if __name__ == "__main__":
     # 使用示例
     image_path = input("input the path: ")  # 替换为您的图片路径
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    ratio, color_image,hist_image = generate_gray_scale_histogram(image, "1")
+    # image = cv2.imread(image_path)
+    ratio, color_image,hist_image = generate_gray_scale_histogram(image, "2", keep_area=-1, fill_bug=0, peak_range= 90)
+    # ratio, color_image = darkest_gray(image)
+
+    ret, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    print(f"ret= {ret}")
+
     print(ratio)
     cv2.imshow("Color Image", color_image)
     cv2.imshow("Histogram Image", hist_image)
+    cv2.imshow("OTSU", thresh)
     cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv2.destroyAllWindows() 
+

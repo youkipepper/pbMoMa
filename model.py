@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 import pandas as pd
-# from darkest_edge import darkest_edge_detection
+from darkest_edge import darkest_edge_detection
+from gray_scale import generate_gray_scale_histogram
 
 from progress_bar import print_progress_bar
 
@@ -63,7 +64,12 @@ def video_edge(video_path):
         for roi in rois:
             x, y, w, h = roi
             roi_frame = gray_frame[y:y+h, x:x+w]
+
+
             # edge_points = darkest_edge_detection(roi_frame, 6)
+
+            # edge_points, color_frame, hist_image =  generate_gray_scale_histogram(roi_frame, "2", keep_area=-1, fill_bug=0, peak_range= 40) 
+
             edge_image = cv2.Canny(roi_frame, 50, 150)
             y_coords, x_coords = np.where(edge_image == 255)
             edge_points = list(zip(x_coords, y_coords)) 
@@ -135,5 +141,5 @@ if __name__ == "__main__":
         # 将每行作为CSV文件中的一行
         pd.DataFrame(y_matrix).to_csv('output_matrix.csv', header=False, index=False)
     
-    model(y_matrix, start_col, end_col, 10 , 100)
+    model(y_matrix, start_col, end_col, 60 , 1)
 

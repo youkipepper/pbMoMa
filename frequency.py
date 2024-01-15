@@ -7,7 +7,7 @@ from scipy.signal import find_peaks
 from darkest_edge import darkest_edge_detection
 from progress_bar import print_progress_bar
 import matplotlib.ticker as ticker
-from gray_scale import generate_gray_scale_histogram, darkest_gray
+from gray_scale import generate_gray_scale_histogram, darkest_gray   
 
 marked_points = []
 
@@ -115,7 +115,7 @@ def on_click(event, freqs, amplitudes, ax, fig):
     fig.canvas.draw()
 
 
-def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = False):
+def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = False, save_video = False, save_hist = False, show_video = False, mark_point = False):
     video_filename = os.path.splitext(os.path.basename(video_path))[0]  # 提取视频文件名
     cap = cv2.VideoCapture(video_path)
 
@@ -146,21 +146,22 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
             os.makedirs(out_dir)
 
     # 构建输出视频的文件路径
-    out_path = os.path.join(
-        out_dir,
-        f"{video_filename}_{edge_choice}_edge_roi({x},{y},{w},{h}).mp4",
-    )
+    if save_video == True:
+        out_path = os.path.join(
+            out_dir,
+            f"{video_filename}_{edge_choice}_edge_roi({x},{y},{w},{h}).mp4",
+        )
 
 
-    out = cv2.VideoWriter(
-        out_path,
-        fourcc,
-        frame_rate,
-        (
-            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-        ),
-    )
+        out = cv2.VideoWriter(
+            out_path,
+            fourcc,
+            frame_rate,
+            (
+                int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+            ),
+        )
 
     print(f"Total Frames: {total_frames}")
     print(f"Frame Rate: {frame_rate} fps")
@@ -177,19 +178,20 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
     if not os.path.exists(media_attached_dir):
         os.makedirs(media_attached_dir)
 
-    # 构建灰度直方图视频的输出路径
-    hist_video_path = os.path.join(
-        media_attached_dir,
-        f"{video_filename}_{edge_choice}_histogram_video.mp4",
-    )
+    if save_hist == True:
+        # 构建灰度直方图视频的输出路径
+        hist_video_path = os.path.join(
+            media_attached_dir,
+            f"{video_filename}_{edge_choice}_histogram_video.mp4",
+        )
 
-    # 创建灰度直方图视频输出
-    hist_out = cv2.VideoWriter(
-        hist_video_path,
-        fourcc,
-        frame_rate,
-        (600, 400)
-    )    
+        # 创建灰度直方图视频输出
+        hist_out = cv2.VideoWriter(
+            hist_video_path,
+            fourcc,
+            frame_rate,
+            (600, 400)
+        )    
 
     # 初始化追踪点（固定x坐标，选择的y坐标）
     point_of_interest = np.array([[x + w // 2, y + h // 2]], dtype=np.float32)
@@ -228,7 +230,9 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
             # 限定ROI
 
             noisy_frame = apply_noise(gray_frame, noise_type)
-            roi_frame = noisy_frame[y : y + h, x : x + w]
+
+            roi_frame = noisy_frame[y : y + h, x : x + w] # notation 灰色roi
+            # roi_frame = frame[y : y + h, x : x + w]  # notation 彩色roi
 
             # roi_frame = gray_frame[y:y+h, x:x+w]
             edge_points = []  # 初始化 edge_points 变量
@@ -256,9 +260,10 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
                 edge_points = [(edge_col, max_row) for edge_col, max_row in max_row_at_edge_col.items()]
 
             elif edge_choice == "gray" or edge_choice == "gray_amplified":
-                edge_points, color_frame, hist_image =  generate_gray_scale_histogram(roi_frame, "1")
+                edge_points, color_frame, hist_image =  generate_gray_scale_histogram(roi_frame, "2", keep_area= -1, fill_bug=0, peak_range= 180)     # notation 1填黑2填白
                 frame[y:y+h, x:x+w] = color_frame
-                # hist_out.write(hist_image)
+                if save_hist== True:
+                    hist_out.write(hist_image)
 
 
             elif edge_choice == "dark_gray" or edge_choice == "dark_gray_amplified":
@@ -338,10 +343,11 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
 
             # out.write(frame) # notation 保存roi信息视频
 
-            # show the video frames # notation 显示预览视频
-            cv2.imshow("Edge Points", frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
+            if show_video == True:
+                # show the video frames 
+                cv2.imshow("Edge Points", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
 
     except KeyboardInterrupt:
         pass
@@ -349,7 +355,8 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
     finally:
         # 关闭视频文件
         cap.release()
-        hist_out.release()
+        if save_hist == True:
+            hist_out.release()
         cv2.destroyAllWindows()
 
     # 在完成数据收集后打印y_tracks 
@@ -456,8 +463,9 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
     # plt.savefig(vibration_spectrum_filename, dpi=300)
     # print(f"vibration_spectrum png saved at: {vibration_spectrum_filename}")
 
-    mark_choice = input("Do u wanna mark the point? (y/n)")
-    if mark_choice == "y":
+    # mark_choice = input("Do u wanna mark the point? (y/n)")
+    # if mark_choice == "y":
+    if mark_point == True:
         # 显示图像，等待窗口关闭
         plt.show()
 
@@ -561,7 +569,7 @@ if __name__ == "__main__":
             except ValueError:
                 print("Invalid input. Please enter valid integers.")
 
-    frequency(video_path, x, y, w, h, "gray") # notation 修改调试函数
+    frequency(video_path, x, y, w, h, "gray", show_video=True, mark_point=True, save_csv= True) # notation 修改调试函数
     # selected_frequencies = frequency(video_path, x, y, w, h, 1)
     # first_frequency = selected_frequencies[0]
     # print("Selected Frequencies:", selected_frequencies, "Hz")

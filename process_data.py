@@ -13,7 +13,6 @@ from AMPD import AMPD
 import matplotlib.ticker as ticker
 
 marked_points = []
-plt.rcParams.update({'font.size': 14})
 
 # def on_click(event, freqs, amplitudes):
 #     """处理点击事件，标记并存储最近的峰值点"""
@@ -93,7 +92,7 @@ def extract_vibration_info(track, sampling_rate):
     return freqs_without_dc, amplitude_without_dc
 
 
-def process_csv_data(csv_file_path, sampling_rate):
+def process_csv_data(csv_file_path, sampling_rate, mark_point= False):
     # 读取CSV文件
     data = pd.read_csv(csv_file_path, header=None)
 
@@ -119,7 +118,7 @@ def process_csv_data(csv_file_path, sampling_rate):
     base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
 
     # 创建保存图像的文件夹（如果不存在）
-    output_folder = os.path.join("/Users/youkipepper/Desktop/pbMoMa/fig", base_name)
+    output_folder = os.path.join("fig", base_name)
     os.makedirs(output_folder, exist_ok=True)
 
     time_array = np.arange(len(y_tracks)) / sampling_rate
@@ -129,7 +128,7 @@ def process_csv_data(csv_file_path, sampling_rate):
     plt.figure(figsize=(14, 6), dpi=100)
     # plt.figure(figsize=(6, 5), dpi=100)
 
-    # plt.xlim(0, max(time_array))
+    plt.xlim(0, max(time_array))
     # plt.xlim(30, 60)
     # plt.ylim(1030, 1040)
 
@@ -139,9 +138,8 @@ def process_csv_data(csv_file_path, sampling_rate):
     # plt.plot(y_tracks, linewidth=1.5)
     plt.plot(time_array, y_tracks, linewidth=1.5)
     # plt.xlabel("Track Index")
-    plt.xlabel("Time (s)", labelpad=15)
-    # plt.ylabel("Displacement")
-    plt.ylabel("Displacement (Px)", labelpad=15)
+    plt.xlabel("Time (s)")
+    # plt.ylabel("Displacement (Px)", labelpad=15)
     plt.ylabel("Voltage (mV)", labelpad=15)
     
     plt.title(f"Displacement")
@@ -179,10 +177,11 @@ def process_csv_data(csv_file_path, sampling_rate):
     vibration_spectrum_filename = os.path.join(
         output_folder, f"{base_name}_vibration_spectrum.png"
     )
-    plt.savefig(vibration_spectrum_filename, dpi=300)
+    # plt.savefig(vibration_spectrum_filename, dpi=300)
 
-    mark_choice = input("Do u wanna mark the point? (y/n)")
-    if mark_choice == "y":
+    # mark_choice = input("Do u wanna mark the point? (y/n)")
+    # if mark_choice == "y":
+    if mark_point == True:
         plt.show()
 
         # 重新绘制图像以包含标注的点
@@ -192,16 +191,19 @@ def process_csv_data(csv_file_path, sampling_rate):
             ax.plot(point[0], point[1], "ro")
             ax.text(point[0], point[1], f"({point[0]:.5f}, {point[1]:.2f})")
 
-        ax.set_xlabel("Frequency (Hz)", fontsize=14, labelpad=15)
-        ax.set_ylabel("Amplitude", fontsize=14, labelpad=15)
+        ax.set_xlabel("Frequency (Hz)")
+        ax.set_ylabel("Amplitude")
 
-        # ax.set_title("Vibration Spectrum with Marked Peaks")
+        ax.set_title("Vibration Spectrum with Marked Peaks")
         plt.tight_layout()
 
         vibration_spectrum_marked_filename = os.path.join(
             output_folder, f"{base_name}_vibration_spectrum_marked.png"
         )
         plt.savefig(vibration_spectrum_marked_filename, dpi=300)
+        print(
+            f"vibration_spectrum_marked png saved at: {vibration_spectrum_marked_filename}"
+        )
 
         selected_freqs = [abs(point[0]) for point in marked_points]  # 转换为绝对值
         unique_freqs = set(selected_freqs)  # 去除重复值
@@ -218,10 +220,13 @@ def process_csv_data(csv_file_path, sampling_rate):
         ax.set_title("Vibration Spectrum with Highest Peak Marked")
         plt.tight_layout()
 
-        vibration_spectrum_marked_filename = os.path.join(
+        vibration_spectrum_highest_peak_filename = os.path.join(
             output_folder, f"{base_name}_vibration_spectrum_highest_peak.png"
         )
-        plt.savefig(vibration_spectrum_marked_filename, dpi=300)
+        plt.savefig(vibration_spectrum_highest_peak_filename, dpi=300)
+        print(
+            f"vibration_spectrum_highest_peak png saved at: {vibration_spectrum_highest_peak_filename}"
+        )
 
     ######
     # # 生成频谱图
@@ -248,4 +253,4 @@ if __name__ == "__main__":
 
     sampling_rate = 60
 
-    process_csv_data(csv_file_path, sampling_rate)
+    process_csv_data(csv_file_path, sampling_rate, mark_point=True)

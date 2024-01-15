@@ -10,25 +10,27 @@ from video_rotate import rotate_video, select_two_points, calculate_rotation_ang
 from gray_level_edge import gray_level_detct
 from model import select_roi, video_edge, model
 
+rotate_choice = False 
+extract_pre = True
 input_path = input("Enter the path of the file: ")
 
 # if the file is xls
 if input_path.endswith('.xls'):
     csv_file_path = xls2csv(input_path)
     base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
-    process_csv_data(csv_file_path, 100) # notation 设置xls采样率
+    process_csv_data(csv_file_path, 100, mark_point= True) # notation 设置xls采样率
 
 # if the file is csv
 elif input_path.endswith('.csv'):
     csv_file_path = input_path
     base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
-    process_csv_data(csv_file_path, 100) # notation 设置csv采样率
-
+    process_csv_data(csv_file_path, 100, mark_point= True) # notation 设置csv采样率
 
 else:
-    # 询问用户是否需要旋转视频
-    rotate_choice = input("Do you want to rotate the video? (y/n): ").strip().lower()
-    if rotate_choice == 'y':
+    # # 询问用户是否需要旋转视频
+    # rotate_choice = input("Do you want to rotate the video? (y/n): ").strip().lower()
+    # if rotate_choice == 'y':
+    if rotate_choice == True:
         cap = cv2.VideoCapture(input_path)
         points = select_two_points(cap)
         if points:
@@ -76,15 +78,15 @@ else:
             except ValueError:
                 print("Invalid input. Please enter valid integers.") 
 
-    
     # 提取放大前模态信息
 
-    choice = input("Do u wanna extract the modal_information of the pre_video? (y/n)")
-    if choice == "y":
-        # frequencies_darkest = frequency(input_path, x, y, w, h, 'darkest') # notation 放大前 darkest
-        # frequencies_canny = frequency(input_path, x, y, w, h, 'canny') # notation 放大前 canny
-        # frequencies_gray = frequency(input_path, x, y, w, h, 'gray') # notation 放大前 gray
-        frequencies_dark_gray = frequency(input_path, x, y, w, h, 'dark_gray') # notation 放大前 dark_gray
+    # choice = input("Do u wanna extract the modal_information of the pre_video? (y/n)")
+    # if choice == "y":
+    if extract_pre == True:
+        frequencies_canny = frequency(input_path, x, y, w, h, 'canny', save_csv= True, show_video= True, mark_point= True) # notation 放大前 canny
+        frequencies_darkest = frequency(input_path, x, y, w, h, 'darkest', save_csv= True, show_video= True, mark_point= True) # notation 放大前 darkest
+        frequencies_darkest = frequency(input_path, x, y, w, h, 'dark_gray', save_csv= True, show_video= True, mark_point= True) # notation 放大前 darkest
+        frequencies_dark_gray = frequency(input_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True) # notation 放大前 dark_gray
 
         # print("Selected Frequencies(darkest):", frequencies_darkest, "Hz")
         # print("Selected Frequencies(canny):", frequencies_canny, "Hz")
@@ -115,7 +117,6 @@ else:
     media_directory = os.path.join(current_directory, "media/media_mag")
     input_video_directory = os.path.join(media_directory, video_name)
     check_path = os.path.join(input_video_directory, os.path.basename(vidFname).replace('.mp4', '_roi(%d,%d,%d,%d)_Mag%d_Ideal-lo%d-hi%d.avi' % (x, y, w, h, factor, lowFreq, highFreq)))
-
     mag_vid_path = phaseBasedMagnify(vidFname, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h)
 
     # print("\nStart convert video to mp4\n")
@@ -125,9 +126,11 @@ else:
     # if edge_choice == "1":
     #     frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest after amplified')
     # elif edge_choice == "2":
-    #     frequencies = frequency(mag_vid_path, x, y, w, h, 'canny after amplified')
+    #     frequencies = frequency(mag_vid_path, x, y, w, h, 'canny after amplified') 
 
     # frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest_amplified') # notation 放大后 darkest
     # frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified') #notation 放大后 canny
     # frequencies = frequency(mag_vid_path, x, y, w, h, 'gray') #notation 放大后 gray
-    frequencies = frequency(mag_vid_path, x, y, w, h, 'dark_gray_amplified') #notation 放大后 dark_gray
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'dark_gray_amplified', save_csv= True, show_video= True, mark_point= True) #notation 放大后 dark_gray
+
+
