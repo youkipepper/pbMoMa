@@ -7,7 +7,9 @@ from scipy.signal import find_peaks
 from darkest_edge import darkest_edge_detection
 from progress_bar import print_progress_bar
 import matplotlib.ticker as ticker
-from gray_scale import generate_gray_scale_histogram, darkest_gray   
+from gray_scale import generate_gray_scale_histogram, darkest_gray
+
+import re
 
 marked_points = []
 
@@ -115,8 +117,10 @@ def on_click(event, freqs, amplitudes, ax, fig):
     fig.canvas.draw()
 
 
-def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = False, save_video = False, save_hist = False, show_video = False, mark_point = False):
+def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = False, save_video = False, save_hist = False, show_video = False, mark_point = False, lable = None):
     video_filename = os.path.splitext(os.path.basename(video_path))[0]  # 提取视频文件名
+    match = re.match(r"(\d{6}_[^_]+)(?:_|$)", video_filename)
+
     cap = cv2.VideoCapture(video_path)
 
     # 获取视频的总帧数和帧率
@@ -132,18 +136,21 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
     fourcc_chars = "".join([chr((fourcc_code >> 8 * i) & 0xFF) for i in range(4)])
     fourcc = cv2.VideoWriter_fourcc(*fourcc_chars)
 
-    video_dir = os.path.dirname(video_path)
-    grandparent_dir = os.path.dirname(os.path.dirname(video_dir))
+    # video_dir = os.path.dirname(video_path)
+    # grandparent_dir = os.path.dirname(os.path.dirname(video_dir))
 
-    # 检查视频是否已在media_attached文件夹中
-    if os.path.basename(video_dir) == "media_attached":
-        out_dir = video_dir
-    else:
-        # 不在media_attached中，使用上上级目录的media_attached文件夹
-        out_dir = os.path.join(grandparent_dir, "media_attached")
-        # 如果目录不存在，则创建它
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
+    # # 检查视频是否已在media_attached文件夹中
+    # if os.path.basename(video_dir) == "media_attached":
+    #     out_dir = video_dir
+    # else:
+    #     # 不在media_attached中，使用上上级目录的media_attached文件夹
+    #     out_dir = os.path.join(grandparent_dir, "media_attached")
+    #     # 如果目录不存在，则创建它
+    #     if not os.path.exists(out_dir):
+    #         os.makedirs(out_dir)
+
+    out_dir = 'media_attached'
+    os.makedirs(out_dir, exist_ok=True)
 
     # 构建输出视频的文件路径
     if save_video == True:
@@ -260,7 +267,7 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
                 edge_points = [(edge_col, max_row) for edge_col, max_row in max_row_at_edge_col.items()]
 
             elif edge_choice == "gray" or edge_choice == "gray_amplified":
-                edge_points, color_frame, hist_image =  generate_gray_scale_histogram(roi_frame, "2", keep_area= -1, fill_bug=0, peak_range= 180)     # notation 1填黑2填白
+                edge_points, color_frame, hist_image =  generate_gray_scale_histogram(roi_frame, "2", keep_area= -1, fill_bug=0, peak_range= 80)     # notation 1填黑2填白
                 frame[y:y+h, x:x+w] = color_frame
                 if save_hist== True:
                     hist_out.write(hist_image)
@@ -340,8 +347,9 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
                     (0, 0, 255),
                     font_thickness,
                 )
-
-            # out.write(frame) # notation 保存roi信息视频
+            
+            if save_video == True:
+                out.write(frame) # notation 保存roi信息视频
 
             if show_video == True:
                 # show the video frames 
@@ -366,7 +374,11 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
     if save_csv == True:
         # 视频处理循环结束后，将y_tracks写入CSV文件
         # csv_output_folder = os.path.join("csv", f"{video_filename}_{edge_choice}")
-        csv_output_folder = 'csv'
+        if match:
+            subfolder_name = match.group(1)
+            csv_output_folder = os.path.join("csv", subfolder_name)
+        else:
+            csv_output_folder = 'csv'
         os.makedirs(csv_output_folder, exist_ok=True)
         csv_filename = os.path.join(
             csv_output_folder,
@@ -381,8 +393,24 @@ def frequency(video_path, x, y, w, h, edge_choice, noise_type=None, save_csv = F
 
         print(f"Y tracks saved to CSV at: {csv_filename}")
 
-    # 创建保存图像的文件夹（如果不存在）
-    output_folder = os.path.join("fig", f"{video_filename}_{edge_choice}")
+
+    if match and lable is not None:
+        subfolder_name = match.group(1)
+        output_folder = os.path.join("fig", subfolder_name, f"{video_filename}_{edge_choice}_{lable}")
+    elif match and lable is None:
+        subfolder_name = match.group(1)
+        output_folder = os.path.join("fig", subfolder_name, f"{video_filename}_{edge_choice}")
+    elif not match and lable is not None:
+        output_folder = os.path.join("fig", f"{video_filename}_{edge_choice}_{lable}")
+    else:
+        output_folder = os.path.join("fig", f"{video_filename}_{edge_choice}") 
+
+    # # 创建保存图像的文件夹（如果不存在）
+    # if lable is not None:
+    #     output_folder = os.path.join("fig", f"{video_filename}_{edge_choice}_{lable}")
+    # else:
+    #     output_folder = os.path.join("fig", f"{video_filename}_{edge_choice}")
+
     os.makedirs(output_folder, exist_ok=True)
     # print(f'y = {y} , int(y) = {int(y)}')
 
@@ -569,7 +597,7 @@ if __name__ == "__main__":
             except ValueError:
                 print("Invalid input. Please enter valid integers.")
 
-    frequency(video_path, x, y, w, h, "gray", show_video=True, mark_point=True, save_csv= True) # notation 修改调试函数
+    frequency(video_path, x, y, w, h, "gray", show_video=True, mark_point=True, save_csv= True, save_video= False, lable= "cable") # notation 修改调试函数
     # selected_frequencies = frequency(video_path, x, y, w, h, 1)
     # first_frequency = selected_frequencies[0]
     # print("Selected Frequencies:", selected_frequencies, "Hz")

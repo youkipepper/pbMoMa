@@ -190,6 +190,8 @@ def generate_gray_scale_histogram(image, peak_choice="2", keep_area = -1, fill_b
     peak_max = max(peaks[0], peaks[1])
     peak_min = min(peaks[0], peaks[1])
 
+    gray_threshold = None
+
     if peak_choice == "1":
         # 标记第一峰值邻域内的像素
         peak = peak_min
@@ -199,13 +201,21 @@ def generate_gray_scale_histogram(image, peak_choice="2", keep_area = -1, fill_b
         peak = peak_max
         lower_bound = peak -(peak_max-peak_min)//2
         upper_bound = 255
+    elif peak_choice == "otsu":
+        peak = None
+        lower_bound = None
+        upper_bound = None
+        gray_threshold, _ = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     else:
         peak = peaks[0]
         lower_bound = max(0, peak - 50)
         upper_bound = min(255, peak + 50)
     # print(lower_bound, upper_bound)
-    mask = (image >= lower_bound) & (image <= upper_bound)
-    color_image[mask] = [0, 255, 0]  # 将符合条件的像素点设为红色（BGR格式） 
+    if peak_choice == "otsu":
+        mask = image >= gray_threshold
+    else:        
+        mask = (image >= lower_bound) & (image <= upper_bound)
+    color_image[mask] = [0, 255, 0]  # 将符合条件的像素点设为绿色（BGR格式） 
     
     if fill_bug != 0:
         fill_small_non_mark_areas(color_image, fill_bug)
@@ -279,7 +289,7 @@ if __name__ == "__main__":
     image_path = input("input the path: ")  # 替换为您的图片路径
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     # image = cv2.imread(image_path)
-    ratio, color_image,hist_image = generate_gray_scale_histogram(image, "2", keep_area=-1, fill_bug=0, peak_range= 90)
+    ratio, color_image,hist_image = generate_gray_scale_histogram(image, "2", keep_area=-1, fill_bug=0, peak_range= 40)
     # ratio, color_image = darkest_gray(image)
 
     ret, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)

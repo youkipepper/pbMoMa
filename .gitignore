@@ -59,7 +59,7 @@ target/
 *.avi
 *.mp4
 
-**/fig
+# **/fig
 **/media
 
 *.png

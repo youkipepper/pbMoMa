@@ -2,6 +2,7 @@
 
 import pandas as pd
 import os
+import re
 
 def xls2csv(xls_file_path):
     """
@@ -15,8 +16,14 @@ def xls2csv(xls_file_path):
     # 构造新的 DataFrame
     new_data = pd.DataFrame(data)
 
-    # 定义 CSV 文件保存路径
-    csv_output_folder = 'csv'
+    xls_filename = os.path.splitext(os.path.basename(xls_file_path))[0]
+    xls_match = re.match(r"(\d{6}_[^_]+)(?:_|$)", xls_filename)
+
+    if xls_match:
+        subfolder_name = xls_match.group(1)
+        csv_output_folder = os.path.join('csv', subfolder_name)
+    else:
+        csv_output_folder = 'csv'
     os.makedirs(csv_output_folder, exist_ok=True)  # 如果文件夹不存在，则创建
     csv_file_name = os.path.basename(xls_file_path).replace('.xls', '.csv')
     csv_file_path = os.path.join(csv_output_folder, csv_file_name)

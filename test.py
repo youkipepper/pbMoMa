@@ -1,31 +1,35 @@
-from moviepy.editor import VideoFileClip
+import os
+import re
+import shutil
 
-def remove_first_frames(video_path, output_path, frames_to_remove=29):
-    """
-    Remove the first 'frames_to_remove' frames from the video.
+def organize_files(target_dir):
+    # 正则表达式用于匹配特定格式的文件名
+    pattern = re.compile(r"(\d{6}_[^_]+)(?:_|$)")
 
-    Args:
-    video_path (str): Path to the input video file.
-    output_path (str): Path where the output video will be saved.
-    frames_to_remove (int): Number of frames to remove from the start of the video.
+    # 用于存储找到的符合条件的文件名及其新路径
+    files_to_move = {}
 
-    Returns:
-    str: Message indicating the completion and the location of the output file.
-    """
+    # 遍历目标文件夹中的所有项
+    for item in os.listdir(target_dir):
+        item_path = os.path.join(target_dir, item)
+        # 确保这是一个文件
+        if os.path.isfile(item_path):
+            match = pattern.match(item)
+            if match:
+                new_folder_name = match.group(1)
+                new_folder_path = os.path.join(target_dir, new_folder_name)
+                files_to_move[item_path] = new_folder_path
 
-    # Load the video
-    clip = VideoFileClip(video_path)
+    # 移动文件
+    for old_path, new_path in files_to_move.items():
+        # 如果新文件夹不存在，则创建
+        if not os.path.exists(new_path):
+            os.makedirs(new_path)
+        # 移动文件
+        shutil.move(old_path, new_path)
 
-    # Calculate the duration of frames to remove
-    duration_to_remove = frames_to_remove / clip.fps
+    print("Files organized.")
 
-    # Cut the video from the duration to remove to the end
-    modified_clip = clip.subclip(duration_to_remove, clip.duration)
-
-    # Write the modified clip to the output file
-    modified_clip.write_videofile(output_path, codec="libx264", audio_codec="aac")
-
-    return f"Video modified. First {frames_to_remove} frames removed. Output saved to: {output_path}"
-
-# Example usage of the function
-remove_first_frames("/Users/youkipepper/Desktop/pbMoMa/media_attached/221022_test_darkest_edge_roi(1067,1687,175,179)_ROI(1037,1578,437,339).mp4", "/Users/youkipepper/Desktop/pbMoMa/media_attached/221022_test_darkest_edge_roi(1067,1687,175,179)_ROI(1037,1578,437,339).mp4")
+# 使用示例
+target_directory = "/Users/youkipepper/Desktop/pbMoMa/csv"  # 将这里替换为您的目标文件夹路径
+organize_files(target_directory)

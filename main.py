@@ -27,9 +27,6 @@ elif input_path.endswith('.csv'):
     process_csv_data(csv_file_path, 100, mark_point= True) # notation 设置csv采样率
 
 else:
-    # # 询问用户是否需要旋转视频
-    # rotate_choice = input("Do you want to rotate the video? (y/n): ").strip().lower()
-    # if rotate_choice == 'y':
     if rotate_choice == True:
         cap = cv2.VideoCapture(input_path)
         points = select_two_points(cap)
@@ -62,7 +59,6 @@ else:
                 x, y, w, h = map(int, roi)
                 break
     elif choice == 'E':
-        # 用户输入ROI的左上角坐标和尺寸
         cap.release()  # 关闭视频文件
         cap = cv2.VideoCapture(input_path)  # 重新打开视频文件
         while True:
@@ -83,10 +79,13 @@ else:
     # choice = input("Do u wanna extract the modal_information of the pre_video? (y/n)")
     # if choice == "y":
     if extract_pre == True:
-        frequencies_canny = frequency(input_path, x, y, w, h, 'canny', save_csv= True, show_video= True, mark_point= True) # notation 放大前 canny
-        frequencies_darkest = frequency(input_path, x, y, w, h, 'darkest', save_csv= True, show_video= True, mark_point= True) # notation 放大前 darkest
-        frequencies_darkest = frequency(input_path, x, y, w, h, 'dark_gray', save_csv= True, show_video= True, mark_point= True) # notation 放大前 darkest
-        frequencies_dark_gray = frequency(input_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True) # notation 放大前 dark_gray
+        frequencies_canny = frequency(input_path, x, y, w, h, 'canny', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 canny
+        frequencies_darkest = frequency(input_path, x, y, w, h, 'darkest', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 darkest
+        frequencies_darkest = frequency(input_path, x, y, w, h, 'dark_gray', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 darkest
+        frequencies_gray = frequency(input_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 dark_gray
+
+        # frequencies_canny = frequency(input_path, x, y, w, h, 'canny', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'road') # notation 放大前 canny
+        # frequencies_gray = frequency(input_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'road') # notation 放大前 dark_gray
 
         # print("Selected Frequencies(darkest):", frequencies_darkest, "Hz")
         # print("Selected Frequencies(canny):", frequencies_canny, "Hz")
@@ -104,8 +103,8 @@ else:
     vidFname = input_path
     maxFrames = 20000
     windowSize = 30
-    # factor = 10
     fpsForBandPass = 90
+    # factor = 10
     # lowFreq = 4
     # highFreq = 8
 
@@ -119,18 +118,11 @@ else:
     check_path = os.path.join(input_video_directory, os.path.basename(vidFname).replace('.mp4', '_roi(%d,%d,%d,%d)_Mag%d_Ideal-lo%d-hi%d.avi' % (x, y, w, h, factor, lowFreq, highFreq)))
     mag_vid_path = phaseBasedMagnify(vidFname, maxFrames, windowSize, factor, fpsForBandPass, lowFreq, highFreq, x, y, w, h)
 
+    # avi2mp4
     # print("\nStart convert video to mp4\n")
     # subprocess.call(['ffmpeg', '-i', mag_vid_path, mag_vid_path.replace('.avi', '.mp4')])
 
-    # edge_choice = input("Press '1' to use darkest_point algorithm or '2' to use canny edge_detect algorthm: ").strip().upper()
-    # if edge_choice == "1":
-    #     frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest after amplified')
-    # elif edge_choice == "2":
-    #     frequencies = frequency(mag_vid_path, x, y, w, h, 'canny after amplified') 
-
-    # frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest_amplified') # notation 放大后 darkest
-    # frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified') #notation 放大后 canny
-    # frequencies = frequency(mag_vid_path, x, y, w, h, 'gray') #notation 放大后 gray
-    frequencies = frequency(mag_vid_path, x, y, w, h, 'dark_gray_amplified', save_csv= True, show_video= True, mark_point= True) #notation 放大后 dark_gray
-
-
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified', save_csv= True, show_video= True, mark_point= True, save_video= False) #notation 放大后 canny
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest_amplified', save_csv= True, show_video= True, mark_point= True, save_video= False) # notation 放大后 darkest
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'dark_gray_amplified', save_csv= True, show_video= True, mark_point= True, save_video= False) #notation 放大后 dark_gray
+    frequencies = frequency(mag_vid_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True, save_video= False) #notation 放大后 gray

@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import sys
+import re
 
 from scipy.signal import find_peaks
 
@@ -116,9 +117,13 @@ def process_csv_data(csv_file_path, sampling_rate, mark_point= False):
 
     # 获取CSV文件的基本名称
     base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
+    csv_match = re.match(r"(\d{6}_[^_]+)(?:_|$)", base_name)
 
-    # 创建保存图像的文件夹（如果不存在）
-    output_folder = os.path.join("fig", base_name)
+    if csv_match:
+        subfolder_name = csv_match.group(1)
+        output_folder = os.path.join("fig", subfolder_name, base_name)
+    else:
+        output_folder = os.path.join("fig", base_name)
     os.makedirs(output_folder, exist_ok=True)
 
     time_array = np.arange(len(y_tracks)) / sampling_rate

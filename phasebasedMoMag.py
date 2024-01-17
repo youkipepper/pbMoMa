@@ -78,7 +78,7 @@ def phaseBasedMagnify(
     width = int(vidReader.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(vidReader.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(vidReader.get(cv2.CAP_PROP_FPS))
-    func_fourcc = cv2.VideoWriter_fourcc
+    func_fourcc = cv2.VideoWriter_fourcc(*"avc1")
 
     # 如果fps未知，则默认为30
     if np.isnan(fps):
@@ -117,28 +117,30 @@ def phaseBasedMagnify(
     # )
 
     # 视频文件的目录和上级目录
-    video_dir = os.path.dirname(vidFname)
-    grandparent_dir = os.path.dirname(os.path.dirname(video_dir))
+    # video_dir = os.path.dirname(vidFname)
+    # grandparent_dir = os.path.dirname(os.path.dirname(video_dir))
 
-    # 检查视频是否已在media_attached文件夹中
-    if os.path.basename(video_dir) == "media_attached":
-        output_dir = video_dir
-    else:
-        # 不在media_attached中，使用上上级目录的media_attached文件夹
-        output_dir = os.path.join(grandparent_dir, "media_attached")
-        # 如果目录不存在，则创建它
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
+    # # 检查视频是否已在media_attached文件夹中
+    # if os.path.basename(video_dir) == "media_attached":
+    #     output_dir = video_dir
+    # else:
+    #     # 不在media_attached中，使用上上级目录的media_attached文件夹
+    #     output_dir = os.path.join(grandparent_dir, "media_attached")
+    #     # 如果目录不存在，则创建它
+    #     if not os.path.exists(output_dir):
+    #         os.makedirs(output_dir)
+    output_dir = 'media_attached'
+    os.makedirs(output_dir, exist_ok=True)
     # 构建输出视频的文件路径
     output_vid_path = os.path.join(
         output_dir,
-        f"{os.path.splitext(os.path.basename(vidFname))[0]}_roi({x},{y},{w},{h})_Mag{factor}_lo{lowFreq}_hi{highFreq}.avi",
+        # f"{os.path.splitext(os.path.basename(vidFname))[0]}_roi({x},{y},{w},{h})_Mag{factor}_lo{lowFreq}_hi{highFreq}.avi",
+        f"{os.path.splitext(os.path.basename(vidFname))[0]}_roi({x},{y},{w},{h})_Mag{factor}_lo{lowFreq}_hi{highFreq}.mp4",
     )
 
     # 视频写入器设置
     fourcc = cv2.VideoWriter_fourcc(*fourcc_chars)
-    vidWriter = cv2.VideoWriter(output_vid_path, fourcc, int(fps), (width, height), 1)
+    vidWriter = cv2.VideoWriter(output_vid_path, func_fourcc, int(fps), (width, height), 1)
     print("Writing:", output_vid_path)
 
     # 处理的帧数
