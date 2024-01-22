@@ -177,7 +177,7 @@ def generate_gray_scale_histogram(image, peak_choice="2", keep_area = -1, fill_b
 
     # 查找直方图中的最大峰值和第二大峰值
     peaks = find_peaks(histogram.copy(), num_peaks=2, max_range= peak_range)
-    print(f"max_range: {peak_range}, gray_level_1: {peaks[0]}, gray_level_2: {peaks[1]}, threshold: {(peaks[0]+peaks[1])//2}")
+    # print(f"max_range: {peak_range}, gray_level_1: {peaks[0]}, gray_level_2: {peaks[1]}, threshold: {(peaks[0]+peaks[1])//2}")
 
     # # 计算极值点的中点
     # x_centre = int((peaks[0] + peaks[1]) / 2)

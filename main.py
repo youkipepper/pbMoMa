@@ -10,7 +10,7 @@ from video_rotate import rotate_video, select_two_points, calculate_rotation_ang
 from gray_level_edge import gray_level_detct
 from model import select_roi, video_edge, model
 
-rotate_choice = False 
+rotate_choice = False
 extract_pre = True
 input_path = input("Enter the path of the file: ")
 
@@ -79,10 +79,10 @@ else:
     # choice = input("Do u wanna extract the modal_information of the pre_video? (y/n)")
     # if choice == "y":
     if extract_pre == True:
-        frequencies_canny = frequency(input_path, x, y, w, h, 'canny', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 canny
+        # frequencies_canny = frequency(input_path, x, y, w, h, 'canny', save_csv= True, show_video= True, mark_point= False, save_video= False, lable= 'cable') # notation 放大前 canny
         frequencies_darkest = frequency(input_path, x, y, w, h, 'darkest', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 darkest
         frequencies_darkest = frequency(input_path, x, y, w, h, 'dark_gray', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 darkest
-        frequencies_gray = frequency(input_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'cable') # notation 放大前 dark_gray
+        # frequencies_gray = frequency(input_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= False, save_video= False, lable= 'cable') # notation 放大前 dark_gray
 
         # frequencies_canny = frequency(input_path, x, y, w, h, 'canny', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'road') # notation 放大前 canny
         # frequencies_gray = frequency(input_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True, save_video= False, lable= 'road') # notation 放大前 dark_gray
@@ -122,7 +122,7 @@ else:
     # print("\nStart convert video to mp4\n")
     # subprocess.call(['ffmpeg', '-i', mag_vid_path, mag_vid_path.replace('.avi', '.mp4')])
 
-    frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified', save_csv= True, show_video= True, mark_point= True, save_video= False) #notation 放大后 canny
+    # frequencies = frequency(mag_vid_path, x, y, w, h, 'canny_amplified', save_csv= True, show_video= True, mark_point= False, save_video= False) #notation 放大后 canny
     frequencies = frequency(mag_vid_path, x, y, w, h, 'darkest_amplified', save_csv= True, show_video= True, mark_point= True, save_video= False) # notation 放大后 darkest
     frequencies = frequency(mag_vid_path, x, y, w, h, 'dark_gray_amplified', save_csv= True, show_video= True, mark_point= True, save_video= False) #notation 放大后 dark_gray
-    frequencies = frequency(mag_vid_path, x, y, w, h, 'gray', save_csv= True, show_video= True, mark_point= True, save_video= False) #notation 放大后 gray
+    # frequencies = frequency(mag_vid_path, x, y, w, h, 'gray_amplified', save_csv= True, show_video= True, mark_point= False, save_video= False) #notation 放大后 gray
