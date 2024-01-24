@@ -62,7 +62,4 @@ target/
 # **/fig
 **/media
 
-*.png
-*.txt
-
 **/.DS_Store
